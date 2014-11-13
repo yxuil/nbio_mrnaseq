@@ -1,0 +1,90 @@
+
+[runInfo]
+projName=rt195 Rozalyn Anderson Mice mRNAseq
+projDetail= Dr. Rozalyn Anderson's mRNAseq experiment with additional data
+   two conditions (T vs R)
+projID=rt201
+projType=mRNAseq
+PI=Rozalyn Anderson
+projPI=AndersonRoz
+IGV_genome=rheMac2
+email=liu@biotech.wisc.edu
+thread=8
+queue=brchigh.q
+
+[dataPath]
+refPath=/mnt/grl/brc/ref/Mus_musculus/RSEM_ref/mm10_rsem
+outputPath=/mnt/grl/brc/data/anderson_rozalyn/rt195/mRNAseq_mm10
+deliveryPath=/mnt/grl/agar/users/AndersonRoz/projects/rt201
+
+B10=/mnt/grl/agar/users/AndersonRoz/run323/run323.B10_ACAGTG_L001_R1.fastq.gz,
+    /mnt/grl/agar/users/AndersonRoz/run323/run323.B10_ACAGTG_L001_R2.fastq.gz
+B20=/mnt/grl/agar/users/AndersonRoz/run323/run323.B20_GCCAAT_L001_R1.fastq.gz,
+    /mnt/grl/agar/users/AndersonRoz/run323/run323.B20_GCCAAT_L001_R2.fastq.gz
+B3=/mnt/grl/agar/users/AndersonRoz/run323/run323.B3_CTTGTA_L001_R1.fastq.gz,
+   /mnt/grl/agar/users/AndersonRoz/run323/run323.B3_CTTGTA_L001_R2.fastq.gz
+B4=/mnt/grl/agar/users/AndersonRoz/run323/run323.B4_GTGAAA_L001_R1.fastq.gz,
+   /mnt/grl/agar/users/AndersonRoz/run323/run323.B4_GTGAAA_L001_R2.fastq.gz
+C11=/mnt/grl/agar/users/AndersonRoz/run323/run323.C11_CTTGTA_L002_R1.fastq.gz,
+    /mnt/grl/agar/users/AndersonRoz/run323/run323.C11_CTTGTA_L002_R2.fastq.gz
+C14=/mnt/grl/agar/users/AndersonRoz/run323/run323.C14_ACAGTG_L002_R1.fastq.gz,
+    /mnt/grl/agar/users/AndersonRoz/run323/run323.C14_ACAGTG_L002_R2.fastq.gz
+C17=/mnt/grl/agar/users/AndersonRoz/run323/run323.C17_GCCAAT_L002_R1.fastq.gz,
+    /mnt/grl/agar/users/AndersonRoz/run323/run323.C17_GCCAAT_L002_R2.fastq.gz
+C20=/mnt/grl/agar/users/AndersonRoz/run323/run323.C20_GTGAAA_L002_R1.fastq.gz,
+   /mnt/grl/agar/users/AndersonRoz/run323/run323.C20_GTGAAA_L002_R2.fastq.gz
+L12=/mnt/grl/agar/users/AndersonRoz/run323/run323.L12_CTTGTA_L004_R1.fastq.gz,
+    /mnt/grl/agar/users/AndersonRoz/run323/run323.L12_CTTGTA_L004_R2.fastq.gz
+L14=/mnt/grl/agar/users/AndersonRoz/run323/run323.L14_GCCAAT_L004_R1.fastq.gz,
+    /mnt/grl/agar/users/AndersonRoz/run323/run323.L14_GCCAAT_L004_R2.fastq.gz;
+    /mnt/grl/agar/users/AndersonRoz/run363/run363.L14_GCCAAT_L006_R1.fastq.gz,
+    /mnt/grl/agar/users/AndersonRoz/run363/run363.L14_GCCAAT_L006_R2.fastq.gz
+L15=/mnt/grl/agar/users/AndersonRoz/run323/run323.L15_ACAGTG_L004_R1.fastq.gz,
+    /mnt/grl/agar/users/AndersonRoz/run323/run323.L15_ACAGTG_L004_R2.fastq.gz
+L5=/mnt/grl/agar/users/AndersonRoz/run323/run323.L5_GTGAAA_L004_R1.fastq.gz,
+   /mnt/grl/agar/users/AndersonRoz/run323/run323.L5_GTGAAA_L004_R2.fastq.gz;
+   /mnt/grl/agar/users/AndersonRoz/run363/run363.L5_GTGAAA_L006_R1.fastq.gz,
+   /mnt/grl/agar/users/AndersonRoz/run363/run363.L5_GTGAAA_L006_R2.fastq.gz
+R10=/mnt/grl/agar/users/AndersonRoz/run323/run323.R10_ACAGTG_L003_R1.fastq.gz,
+    /mnt/grl/agar/users/AndersonRoz/run323/run323.R10_ACAGTG_L003_R2.fastq.gz
+R15=/mnt/grl/agar/users/AndersonRoz/run323/run323.R15_GCCAAT_L003_R1.fastq.gz,
+    /mnt/grl/agar/users/AndersonRoz/run323/run323.R15_GCCAAT_L003_R2.fastq.gz
+R2=/mnt/grl/agar/users/AndersonRoz/run323/run323.R2_GTGAAA_L003_R1.fastq.gz,
+   /mnt/grl/agar/users/AndersonRoz/run323/run323.R2_GTGAAA_L003_R2.fastq.gz
+R4=/mnt/grl/agar/users/AndersonRoz/run323/run323.R4_CTTGTA_L003_R1.fastq.gz,
+   /mnt/grl/agar/users/AndersonRoz/run323/run323.R4_CTTGTA_L003_R2.fastq.gz
+V23=/mnt/grl/agar/users/AndersonRoz/run323/run323.V23_GTGAAA_L005_R1.fastq.gz,
+    /mnt/grl/agar/users/AndersonRoz/run323/run323.V23_GTGAAA_L005_R2.fastq.gz;
+    /mnt/grl/agar/users/AndersonRoz/run363/run363.V23_GTGAAA_L007_R1.fastq.gz,
+    /mnt/grl/agar/users/AndersonRoz/run363/run363.V23_GTGAAA_L007_R2.fastq.gz
+V3=/mnt/grl/agar/users/AndersonRoz/run323/run323.V3_ACAGTG_L005_R1.fastq.gz,
+   /mnt/grl/agar/users/AndersonRoz/run323/run323.V3_ACAGTG_L005_R2.fastq.gz;
+   /mnt/grl/agar/users/AndersonRoz/run363/run363.V3_ACAGTG_L006_R1.fastq.gz,
+   /mnt/grl/agar/users/AndersonRoz/run363/run363.V3_ACAGTG_L006_R2.fastq.gz
+V5=/mnt/grl/agar/users/AndersonRoz/run323/run323.V5_GCCAAT_L005_R1.fastq.gz,
+   /mnt/grl/agar/users/AndersonRoz/run323/run323.V5_GCCAAT_L005_R2.fastq.gz;
+   /mnt/grl/agar/users/AndersonRoz/run363/run363.V5_GCCAAT_L007_R1.fastq.gz,
+   /mnt/grl/agar/users/AndersonRoz/run363/run363.V5_GCCAAT_L007_R2.fastq.gz
+V6=/mnt/grl/agar/users/AndersonRoz/run323/run323.V6_CTTGTA_L005_R1.fastq.gz,
+   /mnt/grl/agar/users/AndersonRoz/run323/run323.V6_CTTGTA_L005_R2.fastq.gz
+
+
+[sampleInfo]
+treatments=B, C, L, R, V
+comparisons = R - C, B - C, V - C, L - C
+fdr = 0.05
+B = B10, B20, B3 , B4
+C = C11, C14, C17, C20
+L = L12, L14,  L15, L5
+R = R10, R15, R2 , R4
+V = V23,  V3 ,  V5 ,  V6
+
+
+
+[toolInfo]
+samtools=/mnt/grl/software/samtools/
+bedtools=/mnt/grl/software/bedtools/bin/
+bowtie=/mnt/grl/software/bowtie
+htseq=/mnt/grl/software/epd/bin/htseq-count
+rsem=/mnt/grl/software/rsem-1.2.5/
+R=/mnt/grl/software/R_centos5/bin/
