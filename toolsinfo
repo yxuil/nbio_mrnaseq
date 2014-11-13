@@ -1,0 +1,22 @@
+# tools configuration for mRNAseq pipeline
+
+##### TOOLS #####
+TOOLDIR       = "/mnt/software/"
+CUTADAPT      = TOOLDIR + "cutadapt-dir/cutadapt-1.3/bin/cutadapt"
+SKEWER        = TOOLDIR + "skewer"
+PICARD        = TOOLDIR + "picard-dir/picard-tools-1.48/"
+BEDTOOLS      = TOOLDIR + "bedtools-dir/bedtools-2.17.0/bin/"
+NOVO          = TOOLDIR + "novoalign-dir/novocraft-V3.02.07/"
+NOVOALIGN     = NOVO + "/novoalign"
+NOVOINDEX     = NOVO + "/novoindex"
+NOVOSORT      = NOVO + "/novosort"
+RNASEQC       = TOOLDIR+"/RNA-SeQC_v1.1.7.jar"
+STAR          = TOOLDIR+"/STAR_2.3.0e.Linux_x86_64/STAR"
+SAMTOOLS      = TOOLDIR+"/samtools/samtools"
+CUFF          = TOOLDIR+"/cufflinks-2.1.1.Linux_x86_64/cufflinks"
+CUFFMERGE     = TOOLDIR+"/cufflinks-2.1.1.Linux_x86_64/cuffmerge"
+CUFFDIFF      = TOOLDIR+"/cufflinks-2.1.1.Linux_x86_64/cuffdiff"
+EXPR          = TOOLDIR+"/express-1.5.1-linux_x86_64/express"
+RSEM          = TOOLDIR+"/rsem-dir/rsem-1.2.16/"
+BOWTIE        = TOOLDIR+"/bowtie-dir/bowtie-1.0.0/"
+python       =  "/mnt/software/epd/bin/python"
