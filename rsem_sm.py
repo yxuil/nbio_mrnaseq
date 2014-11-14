@@ -70,24 +70,24 @@ rule remove:
             #-o {output} {input}"
 
 rule trim_single:
-    input: data_dir+"./{prefix}_R1_001.fastq.gz"
+    input: data_dir+"./{prefix, .*_R1.*}"
     output: "trimmed_fq/{prefix}.fastq"
     threads: 8
     message:
-        "Trim sequencing adaptor from paired end reads of sample {wildcards.prefix}"
+        "Trim sequencing adaptor from single end reads of sample: {wildcards.prefix}"
     shell: "{SKEWER} -x AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC "
              "-y AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT "
              "-k 15 -o trimmed_fq/{wildcards.prefix} -t {threads} {input}"
     
 rule trim_pair:
-    input: data_dir+"./{prefix}_R1.fastq.gz", data_dir+"./{prefix}_R2.fastq.gz"
-    output: "trimmed_fq/{prefix}-pair1.fastq","trimmed_fq/{prefix}-pair2.fastq"
+    input: data_dir+"./{prefix}_R1{sufix}", data_dir+"./{prefix}_R2{sufix}"
+    output: "trimmed_fq/{prefix}_RR{sufix}-pair1.fastq","trimmed_fq/{prefix}_RR{sufix}-pair2.fastq"
     threads: 8
     message:
-        "Trim sequencing adaptor from paired end reads of sample {wildcards.prefix}"
+        "Trim sequencing adaptor from paired end reads of sample: {wildcards.prefix}_R*{wildcards.sufix}"
     shell: "{SKEWER} -x AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC "
              "-y AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT "
-             "-k 15 -o trimmed_fq/{wildcards.prefix} -t {threads} {input}"
+             "-k 15 -o trimmed_fq/{wildcards.prefix}_RR{wildcards.sufix} -t {threads} {input}"
 
 ##### INDEX #####
 RSEM_IDX= [ref_dir + "./RSEMIndex/genome.{i}.ebwt".format(i=i) for i in range(1,5)] +  [ref_dir + "./RSEMIndex/genome.rev.{i}.ebwt".format(i=i) for i in [1,2]]
@@ -136,7 +136,7 @@ rule link_ref:
     shell: "ln -sf {input} {output}\n touch {output}"
     
 rule rsem_index:
-    input:  ref_dir + "./RSEMIndex/genome.fa", ref_dir + "./annotation/genes_chr_only.gtf"
+    input:  ref_dir + "./RSEMIndex/genome.fa", ref_dir + "./annotation/genes.gtf"
     output: RSEM_IDX
     params:
         ref = ref_dir + "./RSEMIndex/genome"
@@ -161,12 +161,12 @@ def getSingleTrimmedName(wc):
     trimmedName = map(lambda x: x.replace("-pair1", ""), getR1trimmedName(wc))
     return trimmedName
     
-#ruleorder:
-    #rsem_paired > rsem_single
+ruleorder:
+    rsem_paired > rsem_single
 rule rsem_single:
     input: 
         ref = RSEM_IDX, 
-        R1  = getSingleTrimmedName
+        read  = lambda wc: [ "trimmed_fq/{}.fastq".format(r) for r in config['samples'][wc.sample]  if "R1" in r]
     output: 
         "rsem_alignment/{sample}.genes.results",
         "rsem_alignment/{sample}.isoforms.results",
@@ -175,9 +175,9 @@ rule rsem_single:
     threads: 8
     params:
         ref= ref_dir + "./RSEMIndex/genome"
-    message: "estimate expression from sample {sample} RNAseq single-end reads"
+    message: "estimate expression from sample {wildcards.sample} RNAseq single-end reads"
     run:
-        read_lst = ",".join(input.R1)
+        read_lst = ",".join(input.read)
         print(read_lst)
         shell("{RSEM}/rsem-calculate-expression -p {threads} --output-genome-bam "
             "--bowtie-path {BOWTIE} --fragment-length-mean 250 --fragment-length-sd 50 "
@@ -186,8 +186,8 @@ rule rsem_single:
 rule rsem_paired:
     input: 
         ref = RSEM_IDX, 
-        R1 = getR1trimmedName, 
-        R2 = getR2trimmedName
+        R1 = lambda wc: [ "trimmed_fq/{s}-pair1.fastq".format(s=r.replace("R1", "RR")) for r in config['samples'][wc.sample] if "R1" in r ] ,
+        R2 = lambda wc: [ "trimmed_fq/{s}-pair2.fastq".format(s=r.replace("R1", "RR")) for r in config['samples'][wc.sample] if "R1" in r ]
     output: "rsem_alignment/{sample}.genes.results", 
             "rsem_alignment/{sample}.isoforms.results", 
             "rsem_alignment/{sample}.transcript.sorted.bam",
