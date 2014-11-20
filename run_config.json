@@ -8,14 +8,14 @@
         "V": ["V1","V2","V3","V4"]
     },
     "samples": {
-	"P1":   [ "run678.P1_CGATGT_L002_R1.fastq.gz run678.P1_CGATGT_L002_R2.fastq.gz run678.P1_CGATGT_L003_R1.fastq.gz run678.P1_CGATGT_L003_R2.fastq.gz" ],
-	"P2":   [ "run678.P2_TGACCA_L002_R1.fastq.gz run678.P2_TGACCA_L002_R2.fastq.gz run678.P2_TGACCA_L003_R1.fastq.gz run678.P2_TGACCA_L003_R2.fastq.gz" ],
-	"P3":   [ "run678.P3_ACAGTG_L002_R1.fastq.gz run678.P3_ACAGTG_L002_R2.fastq.gz run678.P3_ACAGTG_L003_R1.fastq.gz run678.P3_ACAGTG_L003_R2.fastq.gz" ],
-	"P4":   [ "run678.P4_GCCAAT_L002_R1.fastq.gz run678.P4_GCCAAT_L002_R2.fastq.gz run678.P4_GCCAAT_L003_R1.fastq.gz run678.P4_GCCAAT_L003_R2.fastq.gz" ],
-	"V1":   [ "run678.V1_CAGATC_L002_R1.fastq.gz run678.V1_CAGATC_L002_R2.fastq.gz run678.V1_CAGATC_L003_R1.fastq.gz run678.V1_CAGATC_L003_R2.fastq.gz" ],
-	"V2":   [ "run678.V2_CTTGTA_L002_R1.fastq.gz run678.V2_CTTGTA_L002_R2.fastq.gz run678.V2_CTTGTA_L003_R1.fastq.gz run678.V2_CTTGTA_L003_R2.fastq.gz" ],
-	"V3":   [ "run678.V3_AGTTCC_L002_R1.fastq.gz run678.V3_AGTTCC_L002_R2.fastq.gz run678.V3_AGTTCC_L003_R1.fastq.gz run678.V3_AGTTCC_L003_R2.fastq.gz" ],
-	"V4":   [ "run678.V4_AGTCAA_L002_R1.fastq.gz run678.V4_AGTCAA_L002_R2.fastq.gz run678.V4_AGTCAA_L003_R1.fastq.gz run678.V4_AGTCAA_L003_R2.fastq.gz" ]
+	"P1":   [ "run678.P1_CGATGT_L002_R1.fastq.gz, run678.P1_CGATGT_L002_R2.fastq.gz, run678.P1_CGATGT_L003_R1.fastq.gz, run678.P1_CGATGT_L003_R2.fastq.gz" ],
+	"P2":   [ "run678.P2_TGACCA_L002_R1.fastq.gz, run678.P2_TGACCA_L002_R2.fastq.gz, run678.P2_TGACCA_L003_R1.fastq.gz, run678.P2_TGACCA_L003_R2.fastq.gz" ],
+	"P3":   [ "run678.P3_ACAGTG_L002_R1.fastq.gz, run678.P3_ACAGTG_L002_R2.fastq.gz, run678.P3_ACAGTG_L003_R1.fastq.gz, run678.P3_ACAGTG_L003_R2.fastq.gz" ],
+	"P4":   [ "run678.P4_GCCAAT_L002_R1.fastq.gz, run678.P4_GCCAAT_L002_R2.fastq.gz, run678.P4_GCCAAT_L003_R1.fastq.gz, run678.P4_GCCAAT_L003_R2.fastq.gz" ],
+	"V1":   [ "run678.V1_CAGATC_L002_R1.fastq.gz, run678.V1_CAGATC_L002_R2.fastq.gz, run678.V1_CAGATC_L003_R1.fastq.gz, run678.V1_CAGATC_L003_R2.fastq.gz" ],
+	"V2":   [ "run678.V2_CTTGTA_L002_R1.fastq.gz, run678.V2_CTTGTA_L002_R2.fastq.gz, run678.V2_CTTGTA_L003_R1.fastq.gz, run678.V2_CTTGTA_L003_R2.fastq.gz" ],
+	"V3":   [ "run678.V3_AGTTCC_L002_R1.fastq.gz, run678.V3_AGTTCC_L002_R2.fastq.gz, run678.V3_AGTTCC_L003_R1.fastq.gz, run678.V3_AGTTCC_L003_R2.fastq.gz" ],
+	"V4":   [ "run678.V4_AGTCAA_L002_R1.fastq.gz, run678.V4_AGTCAA_L002_R2.fastq.gz, run678.V4_AGTCAA_L003_R1.fastq.gz, run678.V4_AGTCAA_L003_R2.fastq.gz" ]
     },
     "FDR": "0.05"
 }

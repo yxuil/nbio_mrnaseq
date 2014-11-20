@@ -1,7 +1,9 @@
 import sys, os, shutil
 
+cfg_fn = "run_config.json"
+
 configfile:
-    "run_config.json"
+    cfg_fn
 
 workdir:
     config["workdir"]
@@ -18,6 +20,7 @@ include:
 ##### CONFIG #####
 SAMPLES = config["samples"].keys()
 w_dir =  config["workdir"]
+delivery = config["delivery"]
 data_dir = config["data_dir"]
 ref_dir = config["ref_dir"]
 GTF = ref_dir + "./annotation/genes_chr_only.gtf"
@@ -28,9 +31,10 @@ ctrlGrp_lst = [ str.strip(comp.split("-")[1]) for comp in config["comparisons"]]
 ##### target #####
 # run all the rules by default
 rule all:
-    input: ["diff_expr/{}_vs_{}.{}_DE_table.txt".format(exp,ctrl,feature)  \
+    input: ["diff_expr/{}_vs_{}.{}_{}table.txt".format(exp,ctrl,feature, de)  \
             for exp, ctrl in zip(expGrp_lst, ctrlGrp_lst) \
-            for feature in ['genes','isoforms'] ]
+            for feature in ['genes','isoforms'] ] \
+            for de in ['', 'DE_']
 
 # use all conditions in one conparison
 rule one_compare: 
@@ -38,39 +42,40 @@ rule one_compare:
     
 ##### deliver #####
 rule deliver:
-    input: ""
-    output: "{PI}/projects/{rt}/all.genes_DE.txt"
+    input: ["diff_expr/{}_vs_{}.{}_{}table.txt".format(exp,ctrl,feature, de)  \
+            for exp, ctrl in zip(expGrp_lst, ctrlGrp_lst) \
+            for feature in ['genes','isoforms'] ] \
+            for de in ['', 'DE_']
+    output: ["{}/diff_expr/{}_vs_{}.{}_{}table.txt".format(delivery, exp,ctrl,feature, de)  \
+            for exp, ctrl in zip(expGrp_lst, ctrlGrp_lst) \
+            for feature in ['genes','isoforms'] ] \
+            for de in ['', 'DE_']
     message:
         "Copy / move results to delivery folder"
     shell:
         """
-        cp
-        mv
-        ln -s
+        mkdir snakejob.log
+        mv snakejob.* snakejob.log
+        mkdir -p {delivery}
+        mkdir {delivery}/alignment
+        for bam in rsem_estimate/*.genome.sorted.bam; do 
+           mv ${{bam}} {delivery}/alignment; 
+           ln -s {delivery}/alignment/${{bam}} ${{bam}};
+           mv ${{bam}}.bai {delivery}/alignment; 
+           ln -s {delivery}/alignment/${{bam}}.bai ${{bam}}.bai;  
+        done
+        cp -r diff_expr/ {delivery}
+        cp -r expression/ {delivery}
         """
 
 
 ##### remove #####
 rule remove:
-    shell: "rm -r rsem_alignment/ trimmed_fq/ DE_gene.txt gene_reads_counts.matrix *snakejob*"
+    shell: "rm -r rsem_estimate/ trimmed_fq/ DE_gene.txt gene_reads_counts.matrix *snakejob*"
     
 ##### TRIMMING #####
-#rule trim_r1:
-    #input: lambda wildcards: config["samples"][wildcards.sample]  #glob("../data/run*.{sample}_*_L*_R1.fastq.gz")
-    #output: "trimmed_fq/{sample}_R1.trimmed.fq"
-    #threads: 1
-    #shell: "echo input is {input}"
-        #"{CUTADAPT} -m 16 -a AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC -o {output} {input}" 
-
-#rule trim_r2:
-    #input: lambda wc: glob("../data/run*.{wc.sample}_*_L*_R2.fastq.gz".format(wc=wc))
-    #output: "trimmed_fq/{sample}_R2.trimmed.fq"
-    #threads: 1
-    #shell: "{CUTADAPT} -m 16 -a AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT \
-            #-o {output} {input}"
-
 rule trim_single:
-    input: data_dir+"./{prefix, .*_R1.*}"
+    input: data_dir+"/{prefix, .*_R1.*}"
     output: "trimmed_fq/{prefix}.fastq"
     threads: 8
     message:
@@ -80,7 +85,7 @@ rule trim_single:
              "-k 15 -o trimmed_fq/{wildcards.prefix} -t {threads} {input}"
     
 rule trim_pair:
-    input: data_dir+"./{prefix}_R1{sufix}", data_dir+"./{prefix}_R2{sufix}"
+    input: data_dir+"/{prefix}_R1{sufix}", data_dir+"./{prefix}_R2{sufix}"
     output: "trimmed_fq/{prefix}_RR{sufix}-pair1.fastq","trimmed_fq/{prefix}_RR{sufix}-pair2.fastq"
     threads: 8
     message:
@@ -147,19 +152,6 @@ rule rsem_index:
 
 ##### ALIGN #####
 
-def getR1trimmedName(wc):
-    R1_fn = [ r for r in config['samples'][wc.sample] if "R1" in r ]
-    basename = map(lambda x: x.replace("_R1","@@").replace("R1","@@").split("@@")[0], R1_fn)
-    trimmedName = ["trimmed_fq/" + b  + "-pair1.fastq" for b in basename]
-    return trimmedName
-
-def getR2trimmedName(wc):
-    trimmedName = map(lambda x: x.replace("pair1","pair2"), getR1trimmedName(wc))
-    return trimmedName
-
-def getSingleTrimmedName(wc):
-    trimmedName = map(lambda x: x.replace("-pair1", ""), getR1trimmedName(wc))
-    return trimmedName
     
 ruleorder:
     rsem_paired > rsem_single
@@ -168,10 +160,10 @@ rule rsem_single:
         ref = RSEM_IDX, 
         read  = lambda wc: [ "trimmed_fq/{}.fastq".format(r) for r in config['samples'][wc.sample]  if "R1" in r]
     output: 
-        "rsem_alignment/{sample}.genes.results",
-        "rsem_alignment/{sample}.isoforms.results",
-        "rsem_alignment/{sample}.transcript.sorted.bam",
-        "rsem_alignment/{sample}.genome.sorted.bam"
+        "rsem_estimate/{sample}.genes.results",
+        "rsem_estimate/{sample}.isoforms.results",
+        "rsem_estimate/{sample}.transcript.sorted.bam",
+        "rsem_estimate/{sample}.genome.sorted.bam"
     threads: 8
     params:
         ref= ref_dir + "./RSEMIndex/genome"
@@ -181,17 +173,17 @@ rule rsem_single:
         print(read_lst)
         shell("{RSEM}/rsem-calculate-expression -p {threads} --output-genome-bam "
             "--bowtie-path {BOWTIE} --fragment-length-mean 250 --fragment-length-sd 50 "
-            "{read_lst} {params.ref} rsem_alignment/{wildcards.sample}")   
+            "{read_lst} {params.ref} rsem_estimate/{wildcards.sample}")   
                      
 rule rsem_paired:
     input: 
         ref = RSEM_IDX, 
         R1 = lambda wc: [ "trimmed_fq/{s}-pair1.fastq".format(s=r.replace("R1", "RR")) for r in config['samples'][wc.sample] if "R1" in r ] ,
         R2 = lambda wc: [ "trimmed_fq/{s}-pair2.fastq".format(s=r.replace("R1", "RR")) for r in config['samples'][wc.sample] if "R1" in r ]
-    output: "rsem_alignment/{sample}.genes.results", 
-            "rsem_alignment/{sample}.isoforms.results", 
-            "rsem_alignment/{sample}.transcript.sorted.bam",
-            "rsem_alignment/{sample}.genome.sorted.bam"
+    output: "rsem_estimate/{sample}.genes.results", 
+            "rsem_estimate/{sample}.isoforms.results", 
+            "rsem_estimate/{sample}.transcript.sorted.bam",
+            "rsem_estimate/{sample}.genome.sorted.bam"
     threads: 8
     params:
         ref= ref_dir + "./RSEMIndex/genome"
@@ -200,13 +192,13 @@ rule rsem_paired:
         read1_lst = ",".join(input.R1)
         read2_lst = ",".join(input.R2)
         shell("{RSEM}/rsem-calculate-expression -p {threads} --output-genome-bam --bowtie-path {BOWTIE} "\
-              "--paired-end {read1_lst} {read2_lst} {params.ref} rsem_alignment/{wildcards.sample}")
+              "--paired-end {read1_lst} {read2_lst} {params.ref} rsem_estimate/{wildcards.sample}")
     
 ###### DE genes ######
 rule gene_matrix:
-    input: lambda wc: ["rsem_alignment/{s}.{f}.results".format(s=sample, f=wc.feature) for sample in \
+    input: lambda wc: ["rsem_estimate/{s}.{f}.results".format(s=sample, f=wc.feature) for sample in \
                        sorted(config["treatments"][wc.exp]) + sorted(config["treatments"][wc.ctrl]) ]
-    output: "counts/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}.counts.matrix"
+    output: "expression/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}.counts.matrix"
     message: "Merging reads count for genes / isoforms data matrix"
     run:
         header_str = "\t".join([""] + sorted(config["treatments"][wildcards.exp]) + sorted(config["treatments"][wildcards.ctrl]))
@@ -214,27 +206,33 @@ rule gene_matrix:
         shell("sed -i '1s/.*/{header_str}/' {output}")
         
 rule ebseq:
-    input: "counts/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}.counts.matrix"
-    output: "diff_expr/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}_table.txt"
+    input: "expression/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}.counts.matrix"
+    output: "expression/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}_FCstat.txt"
     message: "Differential expression analysis between treatment groups with ebseq"
     run:
         conditions=','.join(map(str, (map(len, [config["treatments"][wildcards.exp], config["treatments"][wildcards.ctrl]]))))
         shell("{RSEM}/rsem-run-ebseq {input} {conditions} {output}")
 
 rule de_fdr:
-    input: "diff_expr/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}_table.txt"
-    output: "diff_expr/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}_DE_table.txt"
+    input: "expression/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}_FCstat.txt"
+    output: "expression/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}_DE_FCstat.txt"
     params: 
         pval = config["FDR"]
     message:
         "Filter for differentially expressed genes by FDR"
     shell: "{RSEM}/rsem-control-fdr {input} {params.pval} {output}"
 
+rule expression_table:
+    input: cfg_fn, "expression/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}{de, _|_DE_}FCstat.txt" 
+    output: "diff_expr/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}{de, _|_DE_}table.txt"
+    #message: "Make gene table from expression results (rsem) and fold change result (EBseq)"
+    shell: "{_pipeline_dir}/format_rsem_results.py {input} > {output}"
+        
 #### rules for comparing all groups together
 rule gene_matrix_all:
-    input: lambda wc: ["rsem_alignment/{s}.{f}.results".format(s=sample, f=wc.feature) for sample in \
+    input: lambda wc: ["rsem_estimate/{s}.{f}.results".format(s=sample, f=wc.feature) for sample in \
                        [ s for trt in sorted(config["treatments"].keys()) for s in config["treatments"][trt] ] ]
-    output: "counts/all.{feature, [a-zA-Z]+}.counts.matrix"
+    output: "expression/all.{feature, [a-zA-Z]+}.counts.matrix"
     message: "Merging reads count for genes / isoforms data matrix"
     run:
         header_str = "\t".join([""] + [ s for trt in sorted(config["treatments"].keys()) for s in config["treatments"][trt] ])
@@ -242,16 +240,16 @@ rule gene_matrix_all:
         shell("sed -i '1s/.*/{header_str}/' {output}") 
         
 rule ebseq_all:
-    input: "counts/all.{feature, [a-zA-Z]+}.counts.matrix"
-    output: "diff_expr/all.{feature, [a-zA-Z]+}_table.txt"
+    input: "expression/all.{feature, [a-zA-Z]+}.counts.matrix"
+    output: "expression/all.{feature, [a-zA-Z]+}_FCstat.txt"
     params:
         conditions=','.join(map(str, (map(len, config["treatments"].values()))))
     message: "Differential expression analysis among all treatment groups with ebseq"
     shell: "{RSEM}/rsem-run-ebseq {input} {params.conditions} {output}"    
 
 rule de_fdr_all:
-    input: "diff_expr/all.{feature, [a-zA-Z]+}_table.txt"
-    output: "diff_expr/all.{feature, [a-zA-Z]+}_DE_table.txt"
+    input: "expression/all.{feature, [a-zA-Z]+}_FCstat.txt"
+    output: "expression/all.{feature, [a-zA-Z]+}_DE_FCstat.txt"
     params: 
         pval = config["FDR"]
     message:
