@@ -1,0 +1,57 @@
+
+
+
+
+##### RSEM quantification #####
+
+## rsem output files are:
+## <sample>.genes.results
+## <sample>.isoforms.results
+## <sample>..stat
+## <sample>..transcript.bam
+## <sample>.transcript.sorted.bam
+## <sample>.transcript.sorted.bam.bai
+RSEM_IDX= [os.path.join(ref_base,  "RSEMIndex", "genome.{i}.ebwt").format(i=i) for i in range(1,5)]\
+          +  [os.path.join(ref_base,  "RSEMIndex","genome.rev.{i}.ebwt").format(i=i) for i in [1,2]]
+
+ruleorder: rsem_bam > rsem_fastq
+rule rsem_bam:
+    input:
+        ref = RSEM_IDX,
+        bam  = "star_alignment/{sample}_Aligned.toTranscriptome.out.bam"
+    output:
+        "rsem_estimate/{sample}.genes.results",
+        "rsem_estimate/{sample}.isoforms.results"
+    log: "logs/rsem_estimate_{sample}.log"
+    threads: 8
+    params:
+        mem = "8G",
+        ref= ref_base + "/RSEMIndex/genome"
+    message: "\n    estimate expression from sample {wildcards.sample} aligned BAM file"
+    run:
+        pair_option = "--paired-end" if ispaired(wildcards.sample) else ""
+        shell("{RSEM}/rsem-calculate-expression {pair_option} --bam {input.bam} -p {threads}  "
+              "{params.ref} rsem_estimate/{wildcards.sample}")
+#--bam [--paired-end] input reference_name sample_name
+
+rule rsem_fastq:
+    input:
+        ref = RSEM_IDX,
+        r1 = lambda wc: [ "trimmed_fq/{}-R1.fq.gz".format(wc.sample)]
+    output: "rsem_estimate/{sample}.genes.results",
+            "rsem_estimate/{sample}.isoforms.results",
+            "rsem_estimate/{sample}.transcript.sorted.bam",
+            "rsem_estimate/{sample}.genome.sorted.bam"
+    threads: 8
+    log: "logs/rsem_calc_expr_{wc.sample}.log"
+    params:
+        mem = "8G",
+        ref= ref_base + "./RSEMIndex/genome"
+    message: "\n    Estimate expression from sample {wildcards.sample} RNAseq reads"
+    run:
+        read1_lst = ",".join(input.r1)
+        pair_option, read2_lst = ("--paired-end", ",".join(input.r1).replace("R1", "R2") ) \
+                                  if ispaired(wildcards.sample) else ("", "")
+        shell("{RSEM}/rsem-calculate-expression -p {threads} --output-genome-bam --bowtie-path {BOWTIE} "\
+              "{pair_option} {read1_lst} {read2_lst} {params.ref} rsem_estimate/{wildcards.sample}")
+

@@ -1,0 +1,76 @@
+
+
+
+##### STAR alginment #####
+## STAR Output files are:
+## <sample>_Aligned.sortedByCoord.out.bam
+## <sample>_Aligned.toTranscriptome.out.bam
+## <sample>_Log.final.out
+## <sample>_Log.out
+## <sample>_Log.progress.out
+## <sample>_SJ.out.tab
+## <sample>__STARtmp
+STAR_IDX = [os.path.join(config['ref_base'], "STARIndex/{}").format(f) for f in \
+            "chrLength.txt chrNameLength.txt chrName.txt chrStart.txt Genome genomeParameters.txt SA SAindex".split()]
+# ruleorder: star_paired > star_single
+
+rule star_align:
+    input:
+        ref = STAR_IDX,
+        r1 = lambda wc: [ "trimmed_fq/{}_R1.fq.gz".format(wc.sample)]
+    output:
+        "star_alignment/{sample}_Aligned.sortedByCoord.out.bam",
+        "star_alignment/{sample}_Aligned.toTranscriptome.out.bam"
+    threads: 8
+    log: "logs/star_align_{sample}.log"
+    params:
+        mem = "32G", # for SGE submission option: -l vf={params.mem}
+        idx_dir = os.path.join(config['ref_base'], "STARIndex"),
+        o_prefix = "star_alignment/{sample}_"
+    message: "\n    Align sample {wildcards.sample} to reference genome"
+    run:
+        read1_lst = ",".join(input.r1)
+        read2_lst = ",".join(input.r1).replace("R1", "R2") if ispaired(wildcards.sample) else ""
+        shell("{STAR} --runThreadN {threads} --genomeDir {params.idx_dir} --readFilesIn {read1_lst} {read2_lst} "
+              "--readFilesCommand zcat --outFileNamePrefix {params.o_prefix} --outSAMattributes NH HI AS NM MD "
+              "--outSAMunmapped Within --outSAMtype BAM SortedByCoordinate --quantMode TranscriptomeSAM "
+              "--outFilterMultimapNmax 50")
+        shell("mv star_alignment/{params.o_prefix}Log.final.out logs/star_align_{params.o_prefix}.final.log")
+
+# rule star_paired:
+#     input:
+#         ref = STAR_IDX,
+#         r1 = lambda wc: [ "trimmed_fq/{}_R1.fq.gz".format(r) for r in config['samples'].keys()],
+#         r2 = lambda wc: [ "trimmed_fq/{}_R2.fq.gz".format(r) for r in config['samples'].keys()]
+#     output:
+#         "star_alignment/{sample}_Aligned.sortedByCoord.out.bam"
+#     threads: 8
+#     log: "logs/star_align_{sample}.log"
+#     params:
+#         mem = "30G",
+#         idx_dir = os.path.join(config['ref_base'], "STARIndex"),
+#         o_prefix = "star_alignment/{sample}_"
+#     message: "\n    Align sample {wildcards.sample} to reference genome"
+#     run:
+#         r1_lst = ",".join(input.r1)
+#         r2_lst = ",".join(input.r2)
+#         print(read_lst)
+#         shell("{STAR}  --runThreadN {threads} --genomeDir {params.idx_dir} --readFilesIn {r1_lst} " \
+#            "--outFileNamePrefix {params.o_prefix} --outSAMtype BAM SortedByCoordinate " \
+#            "--quantMode TranscriptomeSAM --outFilterMultimapNmax 50")
+
+
+
+##### STAR ALIGNMENT #####
+# STAR_IDX = ["SA", "SAindex"]
+# rule star_align:
+#     input:
+#         ref=STAR_IDX,
+#         R1 = lambda wc: [ "trimmed_fq/{s}-pair1.fastq".format(s=r.replace("R1", "RR")) for r in config['samples'][wc.sample] if "R1" in r ] ,
+#         R2 = lambda wc: [ "trimmed_fq/{s}-pair2.fastq".format(s=r.replace("R1", "RR")) for r in config['samples'][wc.sample] if "R1" in r ]
+#     output:
+#         "star_align/{sample}/Aligned_.bam"
+#     log: "logs/star_align_{wc.sample}.log"
+#     params:
+#         mem = "30G"
+#     message: "\n    Align sample {sample} reads to reference with STAR"

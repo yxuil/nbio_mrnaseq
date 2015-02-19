@@ -37,4 +37,3 @@ if __name__ == "__main__":
         save_gene_table(sys.argv[1], sys.argv[2])
     else:
         print("Usage: {} config_file fold_change_file".format(argv[0]))
-

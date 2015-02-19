@@ -1,0 +1,151 @@
+'''
+configuration file format
+'''
+
+import sys, os, shutil, json
+
+cfg_fn = "run_config.json"
+
+configfile:
+    cfg_fn
+
+workdir:
+    config["workdir"]
+
+
+
+# create logs path for SGE output
+os.makedirs("logs", exist_ok=True)
+
+##### CONFIG #####
+SAMPLES = config["samples"].keys()
+w_dir =  config["workdir"]
+delivery = config.get("delivery", "./delivery/")
+data_dir = config["data_dir"]
+ref_base = config["ref_base"]
+GTF = ref_base + "./annotation/genes_chr_only.gtf"
+
+expGrp_lst =  [ str.strip(comp.split("-")[0]) for comp in config["comparisons"]]
+ctrlGrp_lst = [ str.strip(comp.split("-")[1]) for comp in config["comparisons"]]
+
+#### set up reference folder ####
+ref_base = config.get('ref_base', "")
+
+if not os.path.isdir(ref_base): # no ref dir defined, use current work_dir/ref
+    ref_base = "ref"
+    config["ref_base"] = ref_base
+
+# make a copy of config file
+cfg_fn = "run_config_copy.json"
+json.dump(config, open(cfg_fn, 'w'), indent=2)
+
+# include software/program information
+# HACK: to get current Snakefile directory
+_pipeline_dir = os.path.abspath(sys.path[0])
+
+def ispaired(sample):
+    '''determine if a sample has paired sequencing
+    NOTE: if the sample has mixed single end and paired end sequencing
+    it will treated as single end only
+    '''
+    for r1 in [ r for r in config['samples'][sample] ]:
+        if not os.path.isfile(r1.replace("R1", "R2")):  # if any has no R2 counterpart
+            return False
+    return True
+
+include: 
+    "toolsinfo"
+
+
+##### test rule ####
+rule test_rsem:
+    input: ["expression/{}_vs_{}.{}.counts.matrix".format(exp,ctrl,feature) for exp, ctrl in zip(expGrp_lst, ctrlGrp_lst) \
+            for feature in ['genes','isoforms'] ]
+
+##### target #####
+# run all the rules by default
+rule all:
+    input: ["diff_expr/{}_vs_{}.{}_{}table.txt".format(exp,ctrl,feature, de)  \
+            for exp, ctrl in zip(expGrp_lst, ctrlGrp_lst) \
+            for feature in ['genes','isoforms'] ] \
+            for de in ['', 'DE_']
+
+include:
+    'rsem_quantification.sm'
+
+include:
+    "trim.sm"
+
+include:
+    "expr_matrix.sm"
+
+# aligner. STAR or RSEM
+include: "prepare_reference.sm"
+if config["align_exe"] == "STAR":
+    include: "star_align.sm"
+elif config['align_exe'] == "RSEM":
+    include:
+        "",
+        "format_rsem_results.py"
+
+# paired or single reads
+# paired = True
+# for r1 in [f  for s in SAMPLES for f in config["samples"][s] if "R1" in f]:  # all r1 reads
+#     if not os.path.isfile(r1.replace("R1", "R2")):  # if any has no R2 counterpart
+#         paired = False
+#         break
+#
+# if not paired:
+#     include:
+#         "align_single_reads.sm", "trim_single_reads.sm"
+# else:
+#     include:
+#         "align_paired_reads.sm", "trim_paired_reads.sm"
+
+# program for differential expression analysis
+if config["DE_exe"] == "EDGER":
+    include: "DE_analysis_edger.sm"
+elif config["DE_exe"] == "EBSEQ":
+    include: "DE_analysis_ebseq.sm"
+
+
+# use all conditions in one conparison
+rule one_compare: 
+    input: ["diff_expr/all.{}_DE_table.txt".format(feature) for feature in ['genes','isoforms'] ]
+    # input: "expression/all.genes.counts.matrix","expression/all.isoforms.counts.matrix"
+
+##### deliver #####
+rule deliver:
+    input: ["diff_expr/{}_vs_{}.{}_{}table.txt".format(exp,ctrl,feature, de)  \
+            for exp, ctrl in zip(expGrp_lst, ctrlGrp_lst) \
+            for feature in ['genes','isoforms'] ] \
+            for de in ['', 'DE_']
+    output: ["{}/diff_expr/{}_vs_{}.{}_{}table.txt".format(delivery, exp,ctrl,feature, de)  \
+            for exp, ctrl in zip(expGrp_lst, ctrlGrp_lst) \
+            for feature in ['genes','isoforms'] ] \
+            for de in ['', 'DE_']
+    log: "logs/delivery.log"
+    message:
+        "Copy / move results to delivery folder"
+    shell:
+        """
+        mkdir snakejob.log
+        mv snakejob.* snakejob.log
+        mkdir -p {delivery}
+        mkdir {delivery}/alignment
+        for bam in rsem_estimate/*.genome.sorted.bam; do 
+           mv ${{bam}} {delivery}/alignment; 
+           ln -s {delivery}/alignment/${{bam}} ${{bam}};
+           mv ${{bam}}.bai {delivery}/alignment; 
+           ln -s {delivery}/alignment/${{bam}}.bai ${{bam}}.bai;  
+        done
+        cp -r diff_expr/ {delivery}
+        cp -r expression/ {delivery}
+        """
+
+
+##### remove #####
+rule remove:
+    shell: "rm -r rsem_estimate/ trimmed_fq/ DE_gene.txt gene_reads_counts.matrix *snakejob*"
+
+

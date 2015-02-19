@@ -1,21 +1,23 @@
 {
     "workdir": "/mnt/grl/brc/data/anderson_rozalyn/rt287_cell_culture_mRNAseq/rsem_mm10",
-    "ref_dir": "/mnt/grl/genomes/Mus_musculus/UCSC_mm10/",
+    "ref_base": "/mnt/grl/genomes/Mus_musculus/UCSC_mm10/",
     "data_dir": "/mnt/grl/agar/users/AndersonRoz/run678/",
+    "align_exe": "STAR",
+    "DE_exe": "EDGER",
     "comparisons": ["P - V"],
     "treatments": {
         "P": ["P1","P2","P3","P4"],
         "V": ["V1","V2","V3","V4"]
     },
     "samples": {
-	"P1":   [ "run678.P1_CGATGT_L002_R1.fastq.gz, run678.P1_CGATGT_L002_R2.fastq.gz, run678.P1_CGATGT_L003_R1.fastq.gz, run678.P1_CGATGT_L003_R2.fastq.gz" ],
-	"P2":   [ "run678.P2_TGACCA_L002_R1.fastq.gz, run678.P2_TGACCA_L002_R2.fastq.gz, run678.P2_TGACCA_L003_R1.fastq.gz, run678.P2_TGACCA_L003_R2.fastq.gz" ],
-	"P3":   [ "run678.P3_ACAGTG_L002_R1.fastq.gz, run678.P3_ACAGTG_L002_R2.fastq.gz, run678.P3_ACAGTG_L003_R1.fastq.gz, run678.P3_ACAGTG_L003_R2.fastq.gz" ],
-	"P4":   [ "run678.P4_GCCAAT_L002_R1.fastq.gz, run678.P4_GCCAAT_L002_R2.fastq.gz, run678.P4_GCCAAT_L003_R1.fastq.gz, run678.P4_GCCAAT_L003_R2.fastq.gz" ],
-	"V1":   [ "run678.V1_CAGATC_L002_R1.fastq.gz, run678.V1_CAGATC_L002_R2.fastq.gz, run678.V1_CAGATC_L003_R1.fastq.gz, run678.V1_CAGATC_L003_R2.fastq.gz" ],
-	"V2":   [ "run678.V2_CTTGTA_L002_R1.fastq.gz, run678.V2_CTTGTA_L002_R2.fastq.gz, run678.V2_CTTGTA_L003_R1.fastq.gz, run678.V2_CTTGTA_L003_R2.fastq.gz" ],
-	"V3":   [ "run678.V3_AGTTCC_L002_R1.fastq.gz, run678.V3_AGTTCC_L002_R2.fastq.gz, run678.V3_AGTTCC_L003_R1.fastq.gz, run678.V3_AGTTCC_L003_R2.fastq.gz" ],
-	"V4":   [ "run678.V4_AGTCAA_L002_R1.fastq.gz, run678.V4_AGTCAA_L002_R2.fastq.gz, run678.V4_AGTCAA_L003_R1.fastq.gz, run678.V4_AGTCAA_L003_R2.fastq.gz" ]
+	"P1":   [ "run678.P1_CGATGT_L002_R1.fastq.gz", "run678.P1_CGATGT_L002_R2.fastq.gz", "run678.P1_CGATGT_L003_R1.fastq.gz", "run678.P1_CGATGT_L003_R2.fastq.gz" ],
+	"P2":   [ "run678.P2_TGACCA_L002_R1.fastq.gz", "run678.P2_TGACCA_L002_R2.fastq.gz", "run678.P2_TGACCA_L003_R1.fastq.gz", "run678.P2_TGACCA_L003_R2.fastq.gz" ],
+	"P3":   [ "run678.P3_ACAGTG_L002_R1.fastq.gz", "run678.P3_ACAGTG_L002_R2.fastq.gz", "run678.P3_ACAGTG_L003_R1.fastq.gz", "run678.P3_ACAGTG_L003_R2.fastq.gz" ],
+	"P4":   [ "run678.P4_GCCAAT_L002_R1.fastq.gz", "run678.P4_GCCAAT_L002_R2.fastq.gz", "run678.P4_GCCAAT_L003_R1.fastq.gz", "run678.P4_GCCAAT_L003_R2.fastq.gz" ],
+	"V1":   [ "run678.V1_CAGATC_L002_R1.fastq.gz", "run678.V1_CAGATC_L002_R2.fastq.gz", "run678.V1_CAGATC_L003_R1.fastq.gz", "run678.V1_CAGATC_L003_R2.fastq.gz" ],
+	"V2":   [ "run678.V2_CTTGTA_L002_R1.fastq.gz", "run678.V2_CTTGTA_L002_R2.fastq.gz", "run678.V2_CTTGTA_L003_R1.fastq.gz", "run678.V2_CTTGTA_L003_R2.fastq.gz" ],
+	"V3":   [ "run678.V3_AGTTCC_L002_R1.fastq.gz", "run678.V3_AGTTCC_L002_R2.fastq.gz", "run678.V3_AGTTCC_L003_R1.fastq.gz", "run678.V3_AGTTCC_L003_R2.fastq.gz" ],
+	"V4":   [ "run678.V4_AGTCAA_L002_R1.fastq.gz", "run678.V4_AGTCAA_L002_R2.fastq.gz", "run678.V4_AGTCAA_L003_R1.fastq.gz", "run678.V4_AGTCAA_L003_R2.fastq.gz" ]
     },
     "FDR": "0.05"
 }
