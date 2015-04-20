@@ -1,29 +1,23 @@
-STAR_IDX = [os.path.join(config['ref_base'], "STARIndex/{}").format(f) for f in \
-            "chrLength.txt chrNameLength.txt chrName.txt chrStart.txt Genome genomeParameters.txt SA SAindex".split()]
+STAR_IDX = [os.path.join(config['ref_base'], "STARIndex/{}").format(f) for f in "chrLength.txt chrNameLength.txt chrName.txt chrStart.txt Genome genomeParameters.txt SA SAindex".split()]
 
-# use this rule when only alignments are needed
-rule alignment:
-    input: expand("alignments/{sample}_aligned_genome.bam", sample=SAMPLES)
-    message: "#  Run the alignment for all samples"
-
-rule star_align:
+rule align_with_star:
     input:
-        ref = STAR_IDX ,
+        ref = STAR_IDX,
         reads = lambda wc: ["trimmed_fq/{}_R1.fq.gz".format(wc.sample), "trimmed_fq/{}_R2.fq.gz".format(wc.sample)] if is_paired(wc.sample) else "trimmed_fq/{}.fq.gz".format(wc.sample)
     output:
         genome_alignment="tmp/star_alignment/{sample}_Aligned.sortedByCoord.out.bam",
-        transcriptome_alignment="tmp/star_alignment/{sample}_Aligned.toTranscriptome.out.bam",
+        transcriptome_alignment = "tmp/star_alignment/{sample}_Aligned.toTranscriptome.out.bam",
         log="logs/star_align_{sample}.final.log"
-    threads: 8
-    log: "sge_logs/star_align_{sample}.log"
     params:
         mem = "32G", # for SGE submission option: -l vf={params.mem}
         idx_dir = os.path.join(config['ref_base'], "STARIndex"),
         o_prefix = "tmp/star_alignment/{sample}_",
-        reads_lst = lambda wc: "trimmed_fq/{s}_R1.fq.gz trimmed_fq/{s}_R2.fq.gz".format(s = wc.sample)] if is_paired(wc.sample) else "trimmed_fq/{}.fq.gz".format(wc.sample)
-        # read1_lst = lambda wildcards: ",".join(["trimmed_fq/{}_R1.fq.gz".format(wildcards.sample)]),
-        # read2_lst = lambda wildcards: ",".join(["trimmed_fq/{}_R2.fq.gz".format(wildcards.sample)]) if is_paired(wildcards.sample) else ""
+        reads_lst = lambda wc: "trimmed_fq/{s}_R1.fq.gz trimmed_fq/{s}_R2.fq.gz".format(s = wc.sample) if is_paired(wc.sample) else "trimmed_fq/{}.fq.gz".format(wc.sample)
+    log: "sge_logs/star_align_{sample}.log"
+    threads: 8
+
     message: "\n#    Align sample {wildcards.sample} to reference genome"
+
     shell:"""
         # if [ -z "$SGE_O_WORKDIR" ]; then
         #     logging="2>&1 | tee {log}" # shell logging
@@ -36,6 +30,7 @@ rule star_align:
             --outFilterMultimapNmax 50 #$logging
         mv {params.o_prefix}Log.final.out {output.log}
         """
+
 
 rule mv_alignment:
     input:  "tmp/star_alignment/{sample}_Aligned.sortedByCoord.out.bam",
@@ -57,3 +52,10 @@ rule alignment_stat:
     shell: """
         {_pipeline_dir}/align_star_report.py {cfg_fn} {params.o_prefix}
         """
+
+
+
+# use this rule when only alignments are needed
+rule alignment:
+    input: expand("alignments/{sample}_aligned_genome.bam", sample=SAMPLES)
+    message: "#  Run the alignment for all samples"
