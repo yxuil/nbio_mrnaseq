@@ -1,2 +1,64 @@
-include:
-    "expr_matrix.sm"
+#### EdgeR ####
+from snakemake.utils import R
+rule edger:
+    input: "expression/{feature}_count_table.txt"
+    output: "diff_expr/{feature, genes|isoforms}{de, _|_DE_}table.txt"
+    message: "#   Differential expression analysis with EdgeR"
+    run:
+        R("""
+        # read in exp data
+        rawdata <- read.delim({input}, check.names=FALSE, stringsAsFactors=FALSE)
+
+        library('edgeR')
+        library('Cairo')
+        # put the data into a DGEList object
+        y <- DGEList(counts=rawdata[,2:], genes=rawdata[,1])
+
+        # skipped annotation part
+        # filter duplicated entries (None)
+        o <- order(rowSums(y$counts), decreasing=TRUE)
+        y <- y[o,]
+        y$gene
+        d <- duplicated(y$genes)
+        y <- y[!d,]
+
+        # filter lowly expressed genes
+        keep <- rowSums(cpm(y)>1) >= 3
+        y <- y[keep,]
+
+        # calculate library size
+        # normalization
+        y <- calcNormFactors(y)
+
+        # MDS
+        CairoPNG("mds.png")
+        plotMDS(y)
+        dev.off()
+
+        # setup design matrix
+        # bull pair
+        bulls <- factor(c("A", "B", "C", "D", "E", "F", "A", "B", "C", "D", "E", "F"))
+        # Fertility
+        fert <- factor(c("high","high","high","high","high","high","low","low","low","low","low","low"))
+        data.frame(Sample=colnames(y),bulls,fert)
+        design <- model.matrix(~bulls + fert)
+        rownames(design) <- colnames(y)
+        # DE analysis
+        y <- estimateGLMCommonDisp(y, design, verbose=TRUE)
+        y <- estimateGLMTrendedDisp(y, design)
+        y <- estimateGLMTagwiseDisp(y, design)
+        fit <- glmFit(y, design)
+        lrt <- glmLRT(fit)
+        # top genes
+        topTags(lrt)
+        o <- order(lrt$table$PValue)
+        cpm(y)[o[1:10],]
+        # summary
+        summary(de <- decideTestsDGE(lrt))
+        # plot log Fold Change vs Count per Million
+        CairoPNG("FC-CPM.png")
+        detags <- rownames(y)[as.logical(de)]
+        plotSmear(lrt, de.tags=detags)
+        abline(h=c(-1, 1), col="blue")
+        dev.off()
+        """)

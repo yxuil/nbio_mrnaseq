@@ -2,35 +2,37 @@
 ruleorder: trim_paired > trim_single
 
 rule trim_single:
-    input: lambda wc: [ os.path.join(data_dir, f) for f in config['samples'][wc.sample]  if "R1" in f]
-    output: "trimmed_fq/{sample}_R1.fq.gz"
-    log: "logs/{sample}_trim.log"
+    input: lambda wc: [ os.path.join(data_dir, f) for f in config['samples'][wc.sample] ]
+    output: "trimmed_fq/{sample}.fq.gz"
+    log: "sge_logs/{sample}_trim.log"
     params:
         mem = "4G",
-        prefix = "trimmed_fq/{sample}"
+        prefix = "trimmed_fq/{sample}",
+        log="logs/{sample}_trim.log"
     threads: 8
-    message: "   Trim sequencing adaptor from single end reads of sample: {wildcards.sample}"
+    message: "#   Trim sequencing adaptor from single end reads of sample: {wildcards.sample}"
     run:
-        for r1_fname in input:
+        for fname in input:
             shell("{SKEWER} -x AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC "
                   "-y AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT -q 20 "
-                  "-k 15 -l 25 -t {threads} -o {params.prefix} {r1_fname}")
-            shell("cat {params.prefix}.fastq >> {params.prefix}_R1.fq")
-            shell("cat {params.prefix}.log >> {log}")
+                  "-k 15 -l 25 -t {threads} -o {params.prefix} {fname}")
+            shell("cat {params.prefix}.fastq >> {params.prefix}.fq")
+            shell("cat {params.prefix}.log >> {params.log}")
             shell("rm  {params.prefix}.fastq {params.prefix}.log")
-        shell("gzip  {params.prefix}_R1.fq")
+        shell("gzip  {params.prefix}.fq")
 
 rule trim_paired:
     input:
-        r1 = lambda wc: [ os.path.join(data_dir, f) for f in config['samples'][wc.sample]  if "R1" in f],
-        r2 = lambda wc: [ os.path.join(data_dir, f.replace("R1", "R2")) for f in config['samples'][wc.sample]  if "R1" in f]
+        r1 = lambda wc: [ os.path.join(data_dir, f) for f in config['samples'][wc.sample][0::2] ], # odd elements
+        r2 = lambda wc: [ os.path.join(data_dir, f) for f in config['samples'][wc.sample][1::2] ] # even elements 
     output: "trimmed_fq/{sample}_R1.fq.gz", "trimmed_fq/{sample}_R2.fq.gz"
-    log: "logs/{sample}_trim.log"
+    log: "sge_logs/{sample}_trim.log"
     params:
         mem = "4G",
-        prefix = "trimmed_fq/{sample}"
+        prefix = "trimmed_fq/{sample}",
+        log="logs/{sample}_trim.log"
     threads: 8
-    message: "   Trim sequencing adaptor from paired end reads of sample: {wildcards.sample}"
+    message: "#   Trim sequencing adaptor from paired end reads of sample: {wildcards.sample}"
     run:
         for r1_fname, r2_fname in zip(input.r1, input.r2):
             shell( "{SKEWER} -x AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC "
@@ -38,15 +40,26 @@ rule trim_paired:
                    "-k 15 -l 25 -t {threads} -o {params.prefix} {r1_fname} {r2_fname}")
             shell("cat {params.prefix}-pair1.fastq >> {params.prefix}_R1.fq;"
                   "cat {params.prefix}-pair2.fastq >> {params.prefix}_R2.fq")
-            shell("cat {params.prefix}.log >> {log}")
+            shell("cat {params.prefix}.log >> {params.log}")
             shell("rm  {params.prefix}-pair?.fastq {params.prefix}.log")
         shell("gzip  {params.prefix}_R1.fq; gzip  {params.prefix}_R2.fq")
+
+
+rule trim_stat:
+    input: expand("logs/{sample}_trim.log", sample=SAMPLES)
+    output: "trimmed_fq/trim_stat.html"
+    params: mem='1G', o_prefix="trimmed_fq/trim_stat"
+    log: "sge_logs/trim_report.log"
+    message: "#   Reads trimming stats"
+    shell: """
+        {_pipeline_dir}/trim_report.py {cfg_fn} {params.o_prefix}
+        """
 
 #
 # rule trim_single:
 #     input: data_dir+"/{prefix, .*_R1.*}"
 #     output: "trimmed_fq/{prefix}.fastq"
-#     log: "logs/trim_{prefix}.log"
+#     log: "sge_logs/trim_{prefix}.log"
 #     threads: 8
 #     message:
 #         "\n    Trim sequencing adaptor from single end reads of sample: {wildcards.prefix}"
@@ -58,7 +71,7 @@ rule trim_paired:
 # rule trim_single:
 #     input: os.path.join(data_dir, "{prefix, .*_R1.*}")
 #     output:  temp("trimmed_fq/{prefix}.fastq")
-#     log: "logs/trim_{prefix}.log"
+#     log: "sge_logs/trim_{prefix}.log"
 #     threads: 8
 #     message:
 #         "\n    Trim sequencing adaptor from single end reads of sample: {wildcards.prefix}"
@@ -75,7 +88,7 @@ rule trim_paired:
 # rule trim_pair:
 #     input: data_dir+"/{prefix}_R1{sufix}", data_dir+"./{prefix}_R2{sufix}"
 #     output: "trimmed_fq/{prefix}_RR{sufix}-pair1.fastq","trimmed_fq/{prefix}_RR{sufix}-pair2.fastq"
-#     log: "logs/trim_{prefix}.log"
+#     log: "sge_logs/trim_{prefix}.log"
 #     threads: 8
 #     message:
 #         "\n    Trim sequencing adaptor from paired end reads of sample: {wildcards.prefix}_R*{wildcards.sufix}"

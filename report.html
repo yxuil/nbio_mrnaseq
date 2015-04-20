@@ -1,0 +1,124 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html lang="en">
+<head>
+    <title>mRNAseq Data analysis </title>
+    <style type="text/css">
+        body, th, td, p { font-family: helvetica, sans-serif; font-size: small; width: 860px  }
+        p {margin-left: 20px}
+        h1 { font-size: large; text-align: center }
+        h2 { font-size: medium; text-align: left }
+        h3 { font-size: small; text-align: left }
+        table {}
+        footer {margin-left: 40px}
+        .brc { border: 1px solid black; border-collapse: collapse; margin: 10px 10px 15px 20px ; width: 820px }
+        th { text-align: left; color: white; background-color: #aa3333; padding: 3px 15px 3px 3px; border-bottom: 1px solid black; width: 150px }
+        td { padding: 3px 3px 3px 4px; border-bottom: 1px solid gray  }
+
+        .ntitle { color: black; font-family:Arial,Verdana; font-size:11; font-weight:bold;}
+        .left { text-align: left; width: 820px}
+        .right { text-align: right; width: 820px }
+        .center { text-align: center; width: 820px }
+        .boldcentered { text-align: center; font-weight: bold; width: 820px }
+        .tableholder {width: 900px; height: 600px; overflow-y: scroll}
+
+        #top {
+            position: fixed;
+            right: 5px;
+            z-index: 999;
+            top: 40%;
+            color: #aa3333;
+        }
+        #top a {
+            color: #aa3333;
+        }
+    </style>
+</head>
+<body>
+    <div class="center">
+        <h1><a name="reportStart">mRNAseq Data Analysis</a></h1>
+    </div>
+    <div class="boldcentered">
+        UW Biotechnology Center Bioinformatics Resource Center - {{time}}
+    </div>
+    <span id="top">
+        <a href="#reportStart">[ TOP ]</a>
+    </span>
+    <hr>
+    <ol>
+    <li><a href='#summary'>Summary</a></li>
+    <li><a href='#method'>Method</a></li>
+    <li><a href='#data_summary'>Data</a></li>
+    <li><a href='#BAM_summary'>Alignments</a></li>
+    <li><a href='#DE_summary'>Gene Expression</a></li>
+    <li><a href='#software'>Software</a></li>
+    </ol>
+    <hr>
+
+    <div class="left"><strong><a id=summary name=summary>Summary</a></strong>
+    <table class="brc">
+        <tr><th scope='row'>PI Name</th><td style="white-space:pre-wrap">{{PIname}}</td></tr>
+        <tr><th scope='row'>Project Description</th><td style="white-space:pre-wrap">{{description}}</td></tr>
+        <tr><th scope='row'>Sample</th><td style="white-space:pre-wrap">{{sample_num}}</td></tr>
+        <tr><th scope='row'>Organism</th><td>{{organism}}</td></tr>
+        <tr><th scope='row'>Reference Database</th><td>{{ref}}</td></tr>
+        <tr><th scope='row'>Report Generation Date</th><td>{{report_time}}</td></tr>
+
+    </table>
+    </div>
+    <hr>
+
+    <div class='left'><strong><a id='method' name='method'>Method</a></strong>
+        <p>
+            Sequencing reads were trimmed to remove sequencing adaptors and low quality bases. And subsequently aligned
+            to the annotated reference genome using aligner STAR [1]. Quantification of expression for each gene is calculated
+            by RSEM[2], which produce both Transcripts Per Million reads (TPM), and expected read count. The expected read counts
+            are used for differential gene expression analysis using EBSeq [3]
+         </p>
+        <footer>[1] Dobin A <i>et al</i> (2013) STAR: ultrafast universal RNA-seq aligner. Bioinformatics 29:15-21. </footer>
+        <footer>[2] Li B, Dewey CN ( 2011) RSEM: accurate transcript quantification from RNA-Seq data with or without a reference genome.
+            BMC Bioinformatics, 12:323
+        </footer>
+        <footer>[3] Leng N <i>et al</i> (2013) EBSeq: an empirical Bayes hierarchical model for inference in RNA-seq experiments.
+            Bioinformatics 29:1035-1043.
+        </footer>
+        <img src="workflow.png" alt="[Workflow Chart]">
+    </div>
+    <hr>
+
+    <div class="left"><strong><a id=data_summary name=data_summary>Data</a></strong>
+        {{trim_html}}
+    </div>
+    <hr>
+
+    <div class="left"><strong><a id=BAM_summary name=BAM_summary>Alignments</a></strong>
+        {{alignment_html}}
+    </div>
+    <hr>
+
+    <div class="left"><strong><a id=BAM_QC name=BAM_QC>mRNAseq QC</a></strong>
+        {{bam_qc_html}}
+    </div>
+    <hr>
+
+    <div class="left"><strong><a id=DE_summary name=DE_summary>Differntial Expression</a></strong>
+        {{de_html}}
+    </div>
+    <hr>
+
+    <div class='left'><strong><a id='software' name='software'>Software</a></strong></div>
+    <table class="brc">
+    <tr><th>Main Pipeline</th><td>v20150325</td></tr>
+    <tr><th>STAR</th><td>v2.4.0j</td></tr>
+    <tr><th>RSEM</th><td>v1.2.16</td></tr>
+    <tr><th>EBSeq</th><td>v1.1.5</td></tr>
+    </table>
+    </div>
+    <hr>
+
+    Please acknowledge BRC in your manuscript or presentation for the data analysis work. If you think our
+    analysis contributes to your research intellectually please consider authorship for our bioinformaticians.
+
+    <hr>
+    <div style="margin-top: 10px" class="center">Please direct questions to: <strong>brc@biotech.wisc.edu</strong></div>
+</body>
+</html>

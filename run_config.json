@@ -1,23 +1,37 @@
 {
-    "workdir": "/mnt/grl/brc/data/anderson_rozalyn/rt287_cell_culture_mRNAseq/rsem_mm10",
-    "ref_base": "/mnt/grl/genomes/Mus_musculus/UCSC_mm10/",
-    "data_dir": "/mnt/grl/agar/users/AndersonRoz/run678/",
+    "project": "Effects of estrogen and high-fat diet on marmoset hypothalamic gene expression profile",
+    "workdir": "/mnt/grl/brc/data/levine_jon/rt315_marmoset_diet_hormone/star_test2/",
+    "ref_base": "/mnt/grl/brc/data/levine_jon/rt315_marmoset_diet_hormone/ENS_C_jacchus3.2.1.78/",
+    "data_dir": "/mnt/grl/brc/data/levine_jon/rt315_marmoset_diet_hormone/fastq/",
+    "comparisons": ["HF_v - LF_v", "HF_es - LF_es", "HF_es - HF_v ", "LF_es - LF_v"],
+    "delivery": "/mnt/grl/agar/users/Levine/projects/rt315_marmoset_diet_hormone/20150120",
     "align_exe": "STAR",
     "DE_exe": "EDGER",
-    "comparisons": ["P - V"],
     "treatments": {
-        "P": ["P1","P2","P3","P4"],
-        "V": ["V1","V2","V3","V4"]
-    },
+        "LF_v":  ["cj1398", "cj1610", "cj1600", "cj1563"],
+        "HF_v":  ["cj1559", "cj1529", "cj1606", "cj1551"],
+        "LF_es": ["cj1574", "cj1530", "cj1575"],
+        "HF_es": ["cj1397", "cj1564", "cj1601", "cj1576"]
+        },
     "samples": {
-	"P1":   [ "run678.P1_CGATGT_L002_R1.fastq.gz", "run678.P1_CGATGT_L002_R2.fastq.gz", "run678.P1_CGATGT_L003_R1.fastq.gz", "run678.P1_CGATGT_L003_R2.fastq.gz" ],
-	"P2":   [ "run678.P2_TGACCA_L002_R1.fastq.gz", "run678.P2_TGACCA_L002_R2.fastq.gz", "run678.P2_TGACCA_L003_R1.fastq.gz", "run678.P2_TGACCA_L003_R2.fastq.gz" ],
-	"P3":   [ "run678.P3_ACAGTG_L002_R1.fastq.gz", "run678.P3_ACAGTG_L002_R2.fastq.gz", "run678.P3_ACAGTG_L003_R1.fastq.gz", "run678.P3_ACAGTG_L003_R2.fastq.gz" ],
-	"P4":   [ "run678.P4_GCCAAT_L002_R1.fastq.gz", "run678.P4_GCCAAT_L002_R2.fastq.gz", "run678.P4_GCCAAT_L003_R1.fastq.gz", "run678.P4_GCCAAT_L003_R2.fastq.gz" ],
-	"V1":   [ "run678.V1_CAGATC_L002_R1.fastq.gz", "run678.V1_CAGATC_L002_R2.fastq.gz", "run678.V1_CAGATC_L003_R1.fastq.gz", "run678.V1_CAGATC_L003_R2.fastq.gz" ],
-	"V2":   [ "run678.V2_CTTGTA_L002_R1.fastq.gz", "run678.V2_CTTGTA_L002_R2.fastq.gz", "run678.V2_CTTGTA_L003_R1.fastq.gz", "run678.V2_CTTGTA_L003_R2.fastq.gz" ],
-	"V3":   [ "run678.V3_AGTTCC_L002_R1.fastq.gz", "run678.V3_AGTTCC_L002_R2.fastq.gz", "run678.V3_AGTTCC_L003_R1.fastq.gz", "run678.V3_AGTTCC_L003_R2.fastq.gz" ],
-	"V4":   [ "run678.V4_AGTCAA_L002_R1.fastq.gz", "run678.V4_AGTCAA_L002_R2.fastq.gz", "run678.V4_AGTCAA_L003_R1.fastq.gz", "run678.V4_AGTCAA_L003_R2.fastq.gz" ]
+		"cj1398": ["cj1398_GATCAG_L001_R1_001.fastq.gz", "cj1398_GATCAG_L001_R2_001.fastq.gz", "cj1398_GATCAG_L002_R1_001.fastq.gz", "cj1398_GATCAG_L002_R2_001.fastq.gz"],
+		"cj1610": ["cj1610_TAGCTT_L001_R1_001.fastq.gz", "cj1610_TAGCTT_L001_R2_001.fastq.gz", "cj1610_TAGCTT_L002_R1_001.fastq.gz", "cj1610_TAGCTT_L002_R2_001.fastq.gz"],
+		"cj1600": ["cj1600_GGCTAC_L001_R1_001.fastq.gz", "cj1600_GGCTAC_L001_R2_001.fastq.gz", "cj1600_GGCTAC_L002_R1_001.fastq.gz", "cj1600_GGCTAC_L002_R2_001.fastq.gz"],
+		"cj1563": ["cj1563_CTTGTA_L001_R1_001.fastq.gz", "cj1563_CTTGTA_L001_R2_001.fastq.gz", "cj1563_CTTGTA_L002_R1_001.fastq.gz", "cj1563_CTTGTA_L002_R2_001.fastq.gz"],
+		"cj1559": ["cj1559_AGTCAA_L001_R1_001.fastq.gz", "cj1559_AGTCAA_L001_R2_001.fastq.gz", "cj1559_AGTCAA_L002_R1_001.fastq.gz", "cj1559_AGTCAA_L002_R2_001.fastq.gz"],
+		"cj1529": ["cj1529_AGTTCC_L001_R1_001.fastq.gz", "cj1529_AGTTCC_L001_R2_001.fastq.gz", "cj1529_AGTTCC_L002_R1_001.fastq.gz", "cj1529_AGTTCC_L002_R2_001.fastq.gz"],
+		"cj1606": ["cj1606_ATGTCA_L001_R1_001.fastq.gz", "cj1606_ATGTCA_L001_R2_001.fastq.gz", "cj1606_ATGTCA_L002_R1_001.fastq.gz", "cj1606_ATGTCA_L002_R2_001.fastq.gz"],
+		"cj1551": ["cj1551_CCGTCC_L001_R1_001.fastq.gz", "cj1551_CCGTCC_L001_R2_001.fastq.gz", "cj1551_CCGTCC_L002_R1_001.fastq.gz", "cj1551_CCGTCC_L002_R2_001.fastq.gz"],
+		"cj1574": ["cj1574_GTCCGC_L001_R1_001.fastq.gz", "cj1574_GTCCGC_L001_R2_001.fastq.gz", "cj1574_GTCCGC_L002_R1_001.fastq.gz", "cj1574_GTCCGC_L002_R2_001.fastq.gz"],
+		"cj1530": ["cj15301534_GTGAAA_L001_R1_001.fastq.gz", "cj15301534_GTGAAA_L001_R2_001.fastq.gz", "cj15301534_GTGAAA_L002_R1_001.fastq.gz", "cj15301534_GTGAAA_L002_R2_001.fastq.gz"],
+		"cj1575": ["cj1575_GTGGCC_L001_R1_001.fastq.gz", "cj1575_GTGGCC_L001_R2_001.fastq.gz", "cj1575_GTGGCC_L002_R1_001.fastq.gz", "cj1575_GTGGCC_L002_R2_001.fastq.gz"],
+		"cj1397": ["cj1397_GTTTCG_L001_R1_001.fastq.gz", "cj1397_GTTTCG_L001_R2_001.fastq.gz", "cj1397_GTTTCG_L002_R1_001.fastq.gz", "cj1397_GTTTCG_L002_R2_001.fastq.gz"],
+		"cj1564": ["cj1564_CGTACG_L001_R1_001.fastq.gz", "cj1564_CGTACG_L001_R2_001.fastq.gz", "cj1564_CGTACG_L002_R1_001.fastq.gz", "cj1564_CGTACG_L002_R2_001.fastq.gz"],
+		"cj1601": ["cj1601_GAGTGG_L001_R1_001.fastq.gz", "cj1601_GAGTGG_L001_R2_001.fastq.gz", "cj1601_GAGTGG_L002_R1_001.fastq.gz", "cj1601_GAGTGG_L002_R2_001.fastq.gz"],
+		"cj1576": ["cj1576_ACTGAT_L001_R1_001.fastq.gz", "cj1576_ACTGAT_L001_R2_001.fastq.gz", "cj1576_ACTGAT_L002_R1_001.fastq.gz", "cj1576_ACTGAT_L002_R2_001.fastq.gz"]
+
     },
-    "FDR": "0.05"
+    "FDR": "0.05",
+    "PIname": "Jon Levine",
+    "organism": "common marmoset"
 }

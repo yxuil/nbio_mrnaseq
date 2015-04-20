@@ -10,35 +10,35 @@ def get_ref(wc):
 
 ref_base = config.get('ref_base', "")
 
-rule link_ref:
-    input: ""
-    output:
-        fa = os.path.join(config.get('ref_base', "ref"), "genome.fa"),
-        gtf= os.path.join(config.get('ref_base', "ref"), "annotation", "genes.gtf")
-    log: "logs/reference_index.log"
-    message:"""
-        ##
-        #  Set up reference directory
-        ##
-    """
-    run:
-        ref_gtf = config.get("ref_gtf", "")
-        ref_fa  = config.get("ref_fa" , "")
-        print("ref_base",ref_base)
-        print("ref_gtf",ref_gtf)
-        print("ref_fa",ref_fa)
-
-        if not os.path.isfile(output.fa): # genome.fa does not exist in default location
-            if os.path.isfile(ref_fa):
-                shell("cp {ref_fa} {output.fa}")
-            else:
-                print("No suitable reference fasta file")
-
-        if not os.path.isfile(output.gtf): # annotation does not exist in defualt location
-            if os.path.isfile((ref_gtf)):
-                shell("cp {ref_gtf} {output.gtf}")
-            else:
-                print("No suitable annotation GTF file")
+# rule link_ref:
+#     input: "run_config.json"
+#     output:
+#         fa = os.path.join(ref_base, "genome.fa"),
+#         gtf= os.path.join(ref_base, "annotation", "genes.gtf")
+#     log: "sge_logs/reference_index.log"
+#     message:"""
+#         ##
+#         #  Set up reference directory
+#         ##
+#     """
+#     run:
+#         ref_gtf = config.get("ref_gtf", "")
+#         ref_fa  = config.get("ref_fa" , "")
+#         print("ref_base",ref_base)
+#         print("ref_gtf",ref_gtf)
+#         print("ref_fa",ref_fa)
+#
+#         if not os.path.isfile(output.fa): # genome.fa does not exist in default location
+#             if os.path.isfile(ref_fa):
+#                 shell("cp {ref_fa} {output.fa}")
+#             else:
+#                 print("No suitable reference fasta file")
+#
+#         if not os.path.isfile(output.gtf): # annotation does not exist in defualt location
+#             if os.path.isfile((ref_gtf)):
+#                 shell("cp {ref_gtf} {output.gtf}")
+#             else:
+#                 print("No suitable annotation GTF file")
 
 
 rule star_index:
@@ -46,7 +46,7 @@ rule star_index:
         fa = os.path.join(ref_base, "genome.fa"),
         gtf= os.path.join(ref_base, "annotation", "genes.gtf")
     output: os.path.join(ref_base, "STARIndex/{}").format(f) for f in "chrLength.txt chrNameLength.txt chrName.txt chrStart.txt Genome genomeParameters.txt SA SAindex".split()
-    log: "logs/reference_index.log"
+    log: "sge_logs/reference_index.log"
     params:
         mem="30G",
         index_dir = os.path.join(ref_base, "STARIndex")
@@ -99,6 +99,14 @@ def clean_GTF(gtf_fn, output_fn):
             if trx_id in dup_gtf_records:
                 dup_out.writelines(dup_gtf_records[trx_id]['GTF'])
 
+rule fix_gtf:
+    input: os.path.join(ref_base, "annotation", "genes.gtf")
+    output: "tmp/genes_cleaned.gtf"
+    log: "sge_logs/reference_fix_gtf.log"
+    params:
+        mem="1G"
+    run: clean_GTF(input[0], output[0])
+
 #
 # rule link_ref:
 #     input: ref_dir + "./genome.fa"
@@ -109,15 +117,19 @@ RSEM_IDX= [os.path.join(ref_base,  "RSEMIndex", "genome.{}.ebwt").format(i) for 
 rule rsem_index:
     input:
         fa = os.path.join(ref_base, "genome.fa"),
-        gtf= os.path.join(ref_base, "annotation", "genes.gtf")
+        gtf= "tmp/genes_cleaned.gtf"
     output: RSEM_IDX
-    log: "logs/reference_index.log"
+    log: "sge_logs/reference_index.log"
     params:
         mem = "2G",
         ref = os.path.join(ref_base, "RSEMIndex","genome")
-    message: "\n    Make RSEM index with reference sequence and gene annotation"
-    run:
+    message: """
+        ##
+        #  Make RSEM index with reference sequence and gene annotation
+        ##
+        """
+    shell:
         #clean_GTF(input.gtf, 'gene_cleaned.gtf')
-        shell("{RSEM}/rsem-prepare-reference --gtf {input.gtf} --bowtie --bowtie-path {BOWTIE} {input.fa} {params.ref}")
-        shell("ln -s {input.fa} {ref_base}/RSEMIndex/genome.fa")
+        "{RSEM}/rsem-prepare-reference --gtf {input.gtf} --bowtie --bowtie-path {BOWTIE} {input.fa} {params.ref};"
+        #"ln -s {input.fa} {ref_base}/RSEMIndex/genome.fa"
 

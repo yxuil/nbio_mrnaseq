@@ -1,0 +1,133 @@
+'''
+make the RNAseq QC plot table
+
+The whole module creates a section of HTML code for viewing QC plot / table
+
+input takes individuale genome-aligned BAM files and their index
+outputs a HTML table with thumbnail of graphs and links to full size graph
+'''
+
+#### RseQC
+
+rule RSeQC_refBED:
+    input: ref_base + "/annotation/genes.gtf"
+    output: "tmp/rseqc/genes.bed"
+    log: "sge_logs/make_rseqc_refBED.log"
+    params: mem='1G', tmp="tmp/rseqc/"
+    shell: """
+        {UCSC}/gtfToGenePred {input} {params.tmp}/refflat.txt
+        {UCSC}/genePredToBed {params.tmp}/refflat.txt {output}
+        """
+
+rule junc_saturation:
+    input: bam="alignments/{sample}_aligned_genome.bam",
+           bed="tmp/rseqc/genes.bed"
+    output: "QC_graphs/{sample}_junction_satuation.png"
+    params: prefix="tmp/rseqc/{sample}", mem="1G"
+    log: "sge_logs/qc_junc_saturation_{sample}.log"
+    message: "# Plot sample {wildcards.sample} junction saturation graph"
+    shell: """
+        {PY2EXE}/junction_saturation.py -i {input.bam} -o {params.prefix} -r {input.bed}
+        sed -i -e "1ilibrary('Cairo')" -e s/pdf\(/CairoPNG\(/g -e s/\.pdf/\.png/g {params.prefix}.junctionSaturation_plot.r
+        Rscript {params.prefix}.junctionSaturation_plot.r
+        mv {params.prefix}.junctionSaturation_plot.png {output}
+        """
+
+
+rule genebody_coverage:
+    input: bam="alignments/{sample}_aligned_genome.bam",
+           bai="alignments/{sample}_aligned_genome.bam.bai",
+           bed="tmp/rseqc/genes.bed"
+    output: "QC_graphs/{sample}_geneboday_coverage.png"
+    params: prefix="tmp/rseqc/{sample}", mem="1G"
+    log: "sge_logs/qc_genebody_coverage_{sample}.log"
+    message: "# Plot sample {wildcards.sample} genebody coverage graph"
+    shell: """
+        {PY2EXE}/geneBody_coverage.py -i {input.bam} -o {params.prefix} -r {input.bed}
+        sed -i -e "1ilibrary('Cairo')" -e s/pdf\(/CairoPNG\(/g -e s/\.pdf/\.png/g {params.prefix}.geneBodyCoverage.r
+        Rscript {params.prefix}.geneBodyCoverage.r
+        mv {params.prefix}.geneBodyCoverage.curves.png {output}
+        """
+
+rule splice_junction:
+    input: bam="alignments/{sample}_aligned_genome.bam",
+           bed="tmp/rseqc/genes.bed"
+    output: "QC_graphs/{sample}_splice_events.png","QC_graphs/{sample}_splice_junction.png"
+    params: prefix="tmp/rseqc/{sample}", mem="1G"
+    log: "sge_logs/qc_splice_junction_{sample}.log"
+    message: "# Plot sample {wildcards.sample} junction annotation graph"
+    shell: """
+        {PY2EXE}/junction_annotation.py -i {input.bam} -o {params.prefix} -r {input.bed}
+        sed -i -e "1ilibrary('Cairo')" -e s/pdf\(/CairoPNG\(/g -e s/\.pdf/\.png/g {params.prefix}.junction_plot.r
+        Rscript {params.prefix}.junction_plot.r
+        mv {params.prefix}.splice_events.png {output[0]}
+        mv {params.prefix}.splice_junction.png {output[1]}
+        """
+
+rule inner_distance:
+    input: bam="alignments/{sample}_aligned_genome.bam",
+           bed="tmp/rseqc/genes.bed"
+    output: "QC_graphs/{sample}_inner_distance.png"
+    params: prefix="tmp/rseqc/{sample}", mem="1G"
+    log: "sge_logs/qc_inner_distance_{sample}.log"
+    message: "# Plot sample {wildcards.sample} paired end reads inner distance distribution"
+    shell: """
+        {PY2EXE}/inner_distance.py -i {input.bam} -o {params.prefix} -r {input.bed}
+        if [ -f {params.prefix}.inner_distance_plot.pdf ]; then
+            sed -i -e "1ilibrary('Cairo')" -e s/pdf\(/CairoPNG\(/g -e s/\.pdf/\.png/g {params.prefix}.inner_distance_plot.r
+            Rscript {params.prefix}.inner_distance_plot.r
+            mv {params.prefix}.inner_distance_plot.png {output}
+        else  # not paired end
+            echo "Not Paired End" > {output}
+        fi
+        """
+
+rule read_duplication:
+    input: bam="alignments/{sample}_aligned_genome.bam"
+    output: "QC_graphs/{sample}_read_dupRate.png"
+    params: prefix="tmp/rseqc/{sample}", mem="1G"
+    log: "sge_logs/qc_read_dupRate_{sample}.log"
+    message: "# Plot sample {wildcards.sample} read duplication rate graph"
+    shell: """
+        {PY2EXE}/read_duplication.py -i {input.bam} -o {params.prefix}
+        sed -i -e "1ilibrary('Cairo')" -e s/pdf\(/CairoPNG\(/g -e s/\.pdf/\.png/g {params.prefix}.DupRate_plot.r
+        Rscript {params.prefix}.DupRate_plot.r
+        mv {params.prefix}.DupRate_plot.png {output}
+        """
+
+rule read_distribution:
+    input: bam="alignments/{sample}_aligned_genome.bam",
+           bed="tmp/rseqc/genes.bed"
+    output: "QC_graphs/{sample}_read_distr.txt"
+    log: "sge_logs/qc_read_distribution_{sample}.log"
+    message: "# Calculate sample {wildcards.sample} read distribution"
+    shell: """
+        {PY2EXE}/read_distribution.py -i {input.bam}  -r {input.bed} > {output}
+        """
+#
+# rule gtf4countReadDistr:
+#     input: ref_base + "annotation/genes.gtf"
+#     output: exon="tmp/gtfs/exons.gtf",
+#             intron="tmp/gtfs/introns.gtf",
+#             trx="tmp/gtfs/transcripts.gtf",
+#             rna="tmp/gtfs/rRNA.gtf"
+#     params: mem="1G"
+#     message: "# make exon, intron, transcript, and rRNA GTF files for counting read distribution"
+#     shell: "grep $'\t'exon$'\t' {input} | grep -v rRNA - > {output.exon};"
+#            "grep $'\t'transcript$'\t' {input} | grep -v rRNA - > {output.trx};"
+#            "grep rRNA {input} > {output.rna};" \
+#            "subtractBed -a {output.trx} -b {output.exon} > {output.intron}"
+# rule read_distr:
+#     input: ""
+#     output: ""
+
+
+rule QC_report:
+    input: expand("QC_graphs/{sample}_{graph}.png", sample=SAMPLES, graph=["junction_satuation",\
+                     "geneboday_coverage", "splice_junction", "inner_distance", "read_dupRate"] )
+    output: "QC_graphs/qc_table.html", "QC_graphs/qc_table.txt"
+    log: "sge_logs/qc_report.log"
+    params: mem="1G", o_prefix="QC_graphs/qc_table"
+    shell: """
+        {_pipeline_dir}/RSeQC_report.py {cfg_fn} {params.o_prefix}
+        """

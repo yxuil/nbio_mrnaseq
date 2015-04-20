@@ -12,7 +12,7 @@ def save_gene_table(config_fn, fc_file):
     w_dir = config['workdir']
     tpm = None
     for s in config["treatments"][exp]+config["treatments"][ctrl]:
-        exp_fn = "{d}/rsem_estimate/{s}.{f}.results".format(d=w_dir, s=s, f=feature)
+        exp_fn = "{d}/expression/{s}_{f}_table.txt".format(d=w_dir, s=s, f=feature)
         df = pd.read_table(exp_fn, index_col = [0])
         if tpm is None: # get the first samples expression value
             tpm = df[["TPM"]]

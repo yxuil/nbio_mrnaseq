@@ -1,0 +1,38 @@
+# this two function to find out if a sample is paired end 
+def dif(a, b):
+    diff_pos = [i for i in range(len(a)) if a[i] != b[i]]
+    diff_a, diff_b = [ ], [ ]
+    if diff_pos !=[ ]:
+        diff_a = [a[i] for i in diff_pos]
+        diff_b = [b[i] for i in diff_pos]
+    return diff_pos, diff_a, diff_b
+def is_paired(sample):
+    '''determine if a sample has paired sequencing
+    NOTE: if the sample has mixed single end and paired end sequencing
+    it will treated as single end only
+    '''
+
+    R1s =  [ f for f in config['samples'][sample][0::2] ] # odd elements
+    R2s =  [ f for f in config['samples'][sample][1::2] ] # even elements
+    if len(R1s) != len(R2s): # number of R1 and R2 do not match
+        print("The sample {} has odd number of reads file. It is single end.".format(sample))
+        return False
+    for r1, r2 in zip(R1s, R2s):
+        pos, a, b = dif(r1, r2)
+
+        if len(pos) == 1 and sorted([a[0], b[0]]) == ["1", "2"]:
+            pass
+        else:
+            print("The sample {} has un-matched reads file. It is single end.".format(sample))
+            return False
+    return  True
+
+
+rule index_aln_bam:
+    input: "alignments/{sample}_aligned_{nome}.bam"
+    output: "alignments/{sample}_aligned_{nome, genome|transcriptome}.bam.bai"
+    log: "sge_logs/index_{sample}_{nome}_bam.log"
+    params:
+        mem="2G"
+    message: "#    indexing bam file {input}"
+    shell: "{SAMTOOLS} index {input}"

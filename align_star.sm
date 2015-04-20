@@ -1,0 +1,59 @@
+STAR_IDX = [os.path.join(config['ref_base'], "STARIndex/{}").format(f) for f in \
+            "chrLength.txt chrNameLength.txt chrName.txt chrStart.txt Genome genomeParameters.txt SA SAindex".split()]
+
+# use this rule when only alignments are needed
+rule alignment:
+    input: expand("alignments/{sample}_aligned_genome.bam", sample=SAMPLES)
+    message: "#  Run the alignment for all samples"
+
+rule star_align:
+    input:
+        ref = STAR_IDX ,
+        reads = lambda wc: ["trimmed_fq/{}_R1.fq.gz".format(wc.sample), "trimmed_fq/{}_R2.fq.gz".format(wc.sample)] if is_paired(wc.sample) else "trimmed_fq/{}.fq.gz".format(wc.sample)
+    output:
+        genome_alignment="tmp/star_alignment/{sample}_Aligned.sortedByCoord.out.bam",
+        transcriptome_alignment="tmp/star_alignment/{sample}_Aligned.toTranscriptome.out.bam",
+        log="logs/star_align_{sample}.final.log"
+    threads: 8
+    log: "sge_logs/star_align_{sample}.log"
+    params:
+        mem = "32G", # for SGE submission option: -l vf={params.mem}
+        idx_dir = os.path.join(config['ref_base'], "STARIndex"),
+        o_prefix = "tmp/star_alignment/{sample}_",
+        reads_lst = lambda wc: "trimmed_fq/{s}_R1.fq.gz trimmed_fq/{s}_R2.fq.gz".format(s = wc.sample)] if is_paired(wc.sample) else "trimmed_fq/{}.fq.gz".format(wc.sample)
+        # read1_lst = lambda wildcards: ",".join(["trimmed_fq/{}_R1.fq.gz".format(wildcards.sample)]),
+        # read2_lst = lambda wildcards: ",".join(["trimmed_fq/{}_R2.fq.gz".format(wildcards.sample)]) if is_paired(wildcards.sample) else ""
+    message: "\n#    Align sample {wildcards.sample} to reference genome"
+    shell:"""
+        # if [ -z "$SGE_O_WORKDIR" ]; then
+        #     logging="2>&1 | tee {log}" # shell logging
+        # else
+        #     logging=""  # SGE logging
+        # fi
+        {STAR} --runThreadN {threads} --genomeDir {params.idx_dir} --readFilesIn {params.reads_lst}  \
+            --readFilesCommand zcat --outFileNamePrefix {params.o_prefix} --outSAMattributes NH HI AS NM MD \
+            --outSAMunmapped Within --outSAMtype BAM SortedByCoordinate --quantMode TranscriptomeSAM \
+            --outFilterMultimapNmax 50 #$logging
+        mv {params.o_prefix}Log.final.out {output.log}
+        """
+
+rule mv_alignment:
+    input:  "tmp/star_alignment/{sample}_Aligned.sortedByCoord.out.bam",
+            "tmp/star_alignment/{sample}_Aligned.toTranscriptome.out.bam"
+    output: "alignments/{sample}_aligned_genome.bam",
+            "alignments/{sample}_aligned_transcriptome.bam"
+    log: "sge_logs/star_align_{sample}.log"
+    params:
+        mem = "2G"
+    message: "\n#     Move alignment files to destination"
+    shell:  "mv  {input[0]} {output[0]};"
+            "mv  {input[1]} {output[1]}"
+
+rule alignment_stat:
+    input: expand("logs/star_align_{sample}.final.log", sample=SAMPLES)
+    output: "alignments/alignment_stat.html"
+    params: mem='1G', o_prefix="alignments/alignment_stat"
+    log: "sge_logs/trim_report.log"
+    shell: """
+        {_pipeline_dir}/align_star_report.py {cfg_fn} {params.o_prefix}
+        """

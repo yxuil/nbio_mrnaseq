@@ -1,6 +1,7 @@
-# tools configuration for mRNAseq pipeline
+# tools confguration for mRNAseq pipeline
 
 ##### TOOLS #####
+SNAKEMAKE     = "/mnt/software/anaconda/envs/py3/bin/snakemake"
 TOOLDIR       = "/mnt/software/"
 CUTADAPT      = TOOLDIR + "cutadapt-dir/cutadapt-1.3/bin/cutadapt"
 SKEWER        = TOOLDIR + "skewer"
@@ -10,8 +11,8 @@ NOVO          = TOOLDIR + "novoalign-dir/novocraft-V3.02.07/"
 NOVOALIGN     = NOVO + "/novoalign"
 NOVOINDEX     = NOVO + "/novoindex"
 NOVOSORT      = NOVO + "/novosort"
-RNASEQC       = TOOLDIR+"/RNA-SeQC_v1.1.7.jar"
-STAR          = TOOLDIR+"/STAR-dir/STAR-2.4.0i/STAR"
+UCSC          = TOOLDIR+"/UCSCtools/"
+STAR          = TOOLDIR+"/STAR-dir/STAR-2.4.0j/STAR"
 SAMTOOLS      = TOOLDIR+"/samtools/samtools"
 CUFF          = TOOLDIR+"/cufflinks-2.1.1.Linux_x86_64/cufflinks"
 CUFFMERGE     = TOOLDIR+"/cufflinks-2.1.1.Linux_x86_64/cuffmerge"
@@ -19,6 +20,6 @@ CUFFDIFF      = TOOLDIR+"/cufflinks-2.1.1.Linux_x86_64/cuffdiff"
 EXPR          = TOOLDIR+"/express-1.5.1-linux_x86_64/express"
 RSEM          = TOOLDIR+"/rsem-dir/rsem-1.2.16/"
 BOWTIE        = TOOLDIR+"/bowtie-dir/bowtie-1.0.0/"
-RNASEQC       = TOOLDIR+ "/RNA-SeQC-dir/RNA-SeQC_v1.1.8.jar"
+PY2EXE         = TOOLDIR+ "anaconda/envs/py2Centos5/bin/"  # path to python 2 scripts, i.e. RseQC
 JAVA          = "java"
 python       =  "/mnt/software/anaconda/envs/py3/bin/python"
