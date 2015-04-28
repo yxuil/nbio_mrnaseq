@@ -1,21 +1,12 @@
 #### STAR prepare reference ####
-import os
-def get_ref(wc):
-    ref_base = config.get('ref_base', "")
-    ref_fa  = config.get("ref_fa" , "")
-    if ref_base != '':
-        return os.path.join(ref_base,"genome.fa")
-    else:
-        return ref_fa
 
-ref_base = config.get('ref_base', "")
 
 # rule link_ref:
 #     input: "run_config.json"
 #     output:
 #         fa = os.path.join(ref_base, "genome.fa"),
 #         gtf= os.path.join(ref_base, "annotation", "genes.gtf")
-#     log: "sge_logs/reference_index.log"
+#     log: "shell_logs/reference_index.log"
 #     message:"""
 #         ##
 #         #  Set up reference directory
@@ -40,24 +31,6 @@ ref_base = config.get('ref_base', "")
 #             else:
 #                 print("No suitable annotation GTF file")
 
-
-rule star_index:
-    input:
-        fa = os.path.join(ref_base, "genome.fa"),
-        gtf= os.path.join(ref_base, "annotation", "genes.gtf")
-    output: os.path.join(ref_base, "STARIndex/{}").format(f) for f in "chrLength.txt chrNameLength.txt chrName.txt chrStart.txt Genome genomeParameters.txt SA SAindex".split()
-    log: "sge_logs/reference_index.log"
-    params:
-        mem="30G",
-        index_dir = os.path.join(ref_base, "STARIndex")
-    threads: 8
-    message:"""
-        ##
-        #  Create STAR reference genome index
-        ##
-    """
-    shell: " {STAR} --runThreadN {threads} --runMode genomeGenerate --genomeDir {params.index_dir} " \
-           "--genomeFastaFiles {input.fa} --sjdbGTFfile {input.gtf} --sjdbOverhang 99"
 
 ##### INDEX #####
 
@@ -102,7 +75,7 @@ def clean_GTF(gtf_fn, output_fn):
 rule fix_gtf:
     input: os.path.join(ref_base, "annotation", "genes.gtf")
     output: "tmp/genes_cleaned.gtf"
-    log: "sge_logs/reference_fix_gtf.log"
+    log: "shell_logs/reference_fix_gtf.log"
     params:
         mem="1G"
     run: clean_GTF(input[0], output[0])
@@ -119,7 +92,7 @@ rule rsem_index:
         fa = os.path.join(ref_base, "genome.fa"),
         gtf= "tmp/genes_cleaned.gtf"
     output: RSEM_IDX
-    log: "sge_logs/reference_index.log"
+    log: "shell_logs/reference_index.log"
     params:
         mem = "2G",
         ref = os.path.join(ref_base, "RSEMIndex","genome")

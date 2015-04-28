@@ -1,4 +1,15 @@
-# this two function to find out if a sample is paired end 
+import os
+ref_base = config.get('ref_base', "")
+def get_ref(wc):
+    ref_base = config.get('ref_base', "")
+    ref_fa  = config.get("ref_fa" , "")
+    if ref_base != '':
+        return os.path.join(ref_base,"genome.fa")
+    else:
+        return ref_fa
+
+
+# this two function to find out if a sample is paired end
 def dif(a, b):
     diff_pos = [i for i in range(len(a)) if a[i] != b[i]]
     diff_a, diff_b = [ ], [ ]
@@ -31,7 +42,7 @@ def is_paired(sample):
 rule index_aln_bam:
     input: "alignments/{sample}_aligned_{nome}.bam"
     output: "alignments/{sample}_aligned_{nome, genome|transcriptome}.bam.bai"
-    log: "sge_logs/index_{sample}_{nome}_bam.log"
+    log: "shell_logs/index_{sample}_{nome}_bam.log"
     params:
         mem="2G"
     message: "#    indexing bam file {input}"

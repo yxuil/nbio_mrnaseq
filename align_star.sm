@@ -1,54 +1,146 @@
-STAR_IDX = [os.path.join(config['ref_base'], "STARIndex/{}").format(f) for f in "chrLength.txt chrNameLength.txt chrName.txt chrStart.txt Genome genomeParameters.txt SA SAindex".split()]
+# STAR_IDX = [os.path.join(config['ref_base'], "STARIndex/{}").format(f) for f in "chrLength.txt chrNameLength.txt chrName.txt chrStart.txt Genome genomeParameters.txt SA SAindex".split()]
+#
+# rule align_with_star:
+#     input:
+#         ref = STAR_IDX,
+#         reads = lambda wc: ["trimmed_fq/{}_R1.fq.gz".format(wc.sample), "trimmed_fq/{}_R2.fq.gz".format(wc.sample)] if is_paired(wc.sample) else "trimmed_fq/{}.fq.gz".format(wc.sample)
+#     output:
+#         genome_alignment="tmp/star_alignment/{sample}_Aligned.sortedByCoord.out.bam",
+#         transcriptome_alignment = "tmp/star_alignment/{sample}_Aligned.toTranscriptome.out.bam",
+#         log="logs/star_align_{sample}.final.log"
+#     params:
+#         mem = "32G", # for SGE submission option: -l vf={params.mem}
+#         idx_dir = os.path.join(config['ref_base'], "STARIndex"),
+#         o_prefix = "tmp/star_alignment/{sample}_",
+#         reads_lst = lambda wc: "trimmed_fq/{s}_R1.fq.gz trimmed_fq/{s}_R2.fq.gz".format(s = wc.sample) if is_paired(wc.sample) else "trimmed_fq/{}.fq.gz".format(wc.sample)
+#     log: "shell_logs/star_align_{sample}.log"
+#     threads: 8
+#
+#     message: "\n#    Align sample {wildcards.sample} to reference genome"
+#
+#     shell:"""
+#         # if [ -z "$SGE_O_WORKDIR" ]; then
+#         #     logging="2>&1 | tee {log}" # shell logging
+#         # else
+#         #     logging=""  # SGE logging
+#         # fi
+#         {STAR} --runThreadN {threads} --genomeDir {params.idx_dir} --readFilesIn {params.reads_lst}  \
+#             --genomeLoad LoadAndKeep
+#             --readFilesCommand zcat --outFileNamePrefix {params.o_prefix} --outSAMattributes NH HI AS NM MD XS \
+#             --outSAMunmapped Within --outSAMtype BAM SortedByCoordinate --quantMode TranscriptomeSAM \
+#             --outFilterMultimapNmax 50 #$logging
+#         mv {params.o_prefix}Log.final.out {output.log}
+#         """
 
-rule align_with_star:
-    input:
-        ref = STAR_IDX,
-        reads = lambda wc: ["trimmed_fq/{}_R1.fq.gz".format(wc.sample), "trimmed_fq/{}_R2.fq.gz".format(wc.sample)] if is_paired(wc.sample) else "trimmed_fq/{}.fq.gz".format(wc.sample)
-    output:
-        genome_alignment="tmp/star_alignment/{sample}_Aligned.sortedByCoord.out.bam",
-        transcriptome_alignment = "tmp/star_alignment/{sample}_Aligned.toTranscriptome.out.bam",
-        log="logs/star_align_{sample}.final.log"
-    params:
-        mem = "32G", # for SGE submission option: -l vf={params.mem}
-        idx_dir = os.path.join(config['ref_base'], "STARIndex"),
-        o_prefix = "tmp/star_alignment/{sample}_",
-        reads_lst = lambda wc: "trimmed_fq/{s}_R1.fq.gz trimmed_fq/{s}_R2.fq.gz".format(s = wc.sample) if is_paired(wc.sample) else "trimmed_fq/{}.fq.gz".format(wc.sample)
-    log: "sge_logs/star_align_{sample}.log"
-    threads: 8
-
-    message: "\n#    Align sample {wildcards.sample} to reference genome"
-
-    shell:"""
-        # if [ -z "$SGE_O_WORKDIR" ]; then
-        #     logging="2>&1 | tee {log}" # shell logging
-        # else
-        #     logging=""  # SGE logging
-        # fi
-        {STAR} --runThreadN {threads} --genomeDir {params.idx_dir} --readFilesIn {params.reads_lst}  \
-            --readFilesCommand zcat --outFileNamePrefix {params.o_prefix} --outSAMattributes NH HI AS NM MD \
-            --outSAMunmapped Within --outSAMtype BAM SortedByCoordinate --quantMode TranscriptomeSAM \
-            --outFilterMultimapNmax 50 #$logging
-        mv {params.o_prefix}Log.final.out {output.log}
-        """
-
-
-rule mv_alignment:
-    input:  "tmp/star_alignment/{sample}_Aligned.sortedByCoord.out.bam",
-            "tmp/star_alignment/{sample}_Aligned.toTranscriptome.out.bam"
-    output: "alignments/{sample}_aligned_genome.bam",
-            "alignments/{sample}_aligned_transcriptome.bam"
-    log: "sge_logs/star_align_{sample}.log"
-    params:
-        mem = "2G"
-    message: "\n#     Move alignment files to destination"
-    shell:  "mv  {input[0]} {output[0]};"
-            "mv  {input[1]} {output[1]}"
+# read_length=100 # TODO add parameter in the config, then use int(config["read_length"]) - 1
+# STAR_pass1_IDX = ["ref/STARPass1Index/{}".format(f) for f in \
+#                   "chrLength.txt chrNameLength.txt chrName.txt chrStart.txt Genome genomeParameters.txt SA SAindex".split()]
+# rule star_pass1_index:
+#     input:
+#         fa = os.path.join(ref_base, "genome.fa"),
+#         gtf= os.path.join(ref_base, "annotation", "genes.gtf")
+#     output: STAR_pass1_IDX
+#     log: "shell_logs/reference_index.log"
+#     params:
+#         mem="30G",
+#         index_dir = "ref/STARPass1Index")
+#     threads: 8
+#     message:"""
+#         ##
+#         #  Create STAR reference genome index
+#         ##
+#     """
+#     shell: " {STAR} --runThreadN {threads} --runMode genomeGenerate --genomeDir {params.index_dir} " \
+#            "--genomeFastaFiles {input.fa} --sjdbGTFfile {input.gtf} --sjdbOverhang {read_length}"
+#
+# rule star_align_pass1:
+#     input:
+#         ref = STAR_pass1_IDX,
+#         reads = lambda wc: ["trimmed_fq/{}_R1.fq.gz".format(wc.sample), "trimmed_fq/{}_R2.fq.gz".format(wc.sample)] if is_paired(wc.sample) else "trimmed_fq/{}.fq.gz".format(wc.sample)
+#     output:
+#         junction = "tmp/star_alignment1/{sample}_SJ.out.tab"
+#     params:
+#         mem = "32G", # for SGE submission option: -l vf={params.mem}
+#         idx_dir = os.path.join(config['ref_base'], "STARIndex"),
+#         o_prefix = "tmp/star_alignment/{sample}_",
+#         reads_lst = lambda wc: "trimmed_fq/{s}_R1.fq.gz trimmed_fq/{s}_R2.fq.gz".format(s = wc.sample) if is_paired(wc.sample) else "trimmed_fq/{}.fq.gz".format(wc.sample)
+#     log: "shell_logs/star_align_{sample}.log"
+#     threads: 8
+#
+#     message: "\n#    Align sample {wildcards.sample} to reference genome"
+#
+#     shell:"""
+#         {STAR} --runThreadN {threads} --genomeDir {params.idx_dir} --readFilesIn {params.reads_lst}  \
+#             --readFilesCommand zcat --outFileNamePrefix {params.o_prefix} --outSAMattributes NH HI AS NM MD XS \
+#             --outFilterMultimapNmax 50 #$logging
+#         mv {params.o_prefix}Log.final.out {output.log}
+#         """
+#
+# STAR_pass2_IDX = ["ref/STARPass2Index/{}").format(f) for f in "chrLength.txt chrNameLength.txt chrName.txt chrStart.txt Genome genomeParameters.txt SA SAindex".split()]
+#
+# rule merge_star_junction:
+#     input: expand("ref/star_alignment1/{s}_SJ.out.tab", s=SAMPLES)
+#     output: "ref/STARPass1Index/master_SJ.out.tab"
+#     params:
+#         mem = "2G"
+#     log: "shell_logs/star_junc_merge.log"
+#     mesage: "\n#   merge output junction files from STAR alignment"
+#     threads; 1
+#     shell: "{_pipeline_dir}/"
+# rule star_pass2_index:
+#     input:
+#     output:
+#         STAR_pass2_IDX
+# rule star_align_pass2:
+#     input:
+#         ref = STAR_pass2_IDX,
+#         reads = lambda wc: ["trimmed_fq/{}_R1.fq.gz".format(wc.sample), "trimmed_fq/{}_R2.fq.gz".format(wc.sample)] if is_paired(wc.sample) else "trimmed_fq/{}.fq.gz".format(wc.sample),
+#         junctions = expand("tmp/star_alignment_pass1/{s}_SJ.out.tab", s=SAMPLES)
+#     output:
+#         genome_alignment="tmp/star_alignment_pass2/{sample}_Aligned.sortedByCoord.out.bam",
+#         transcriptome_alignment = "tmp/star_alignment_pass2/{sample}_Aligned.toTranscriptome.out.bam",
+#         log="logs/star_align_{sample}.final.log"
+#     params:
+#         mem = "32G", # for SGE submission option: -l vf={params.mem}
+#         idx_dir = os.path.join(config['ref_base'], "STARIndex"),
+#         o_prefix = "tmp/star_alignment/{sample}_",
+#         reads_lst = lambda wc: "trimmed_fq/{s}_R1.fq.gz trimmed_fq/{s}_R2.fq.gz".format(s = wc.sample) if is_paired(wc.sample) else "trimmed_fq/{}.fq.gz".format(wc.sample),
+#         junc_lst = " ".join(["tmp/star_alignment_pass1/{s}_SJ.out.tab" for s in SAMPLES])
+#     log: "shell_logs/star_align_{sample}.log"
+#     threads: 8
+#
+#     message: "\n#    Align sample {wildcards.sample} to reference genome"
+#
+#     shell:"""
+#         # if [ -z "$SGE_O_WORKDIR" ]; then
+#         #     logging="2>&1 | tee {log}" # shell logging
+#         # else
+#         #     logging=""  # SGE logging
+#         # fi
+#         {STAR} --runThreadN {threads} --genomeDir {params.idx_dir} --readFilesIn {params.reads_lst}  \
+#             --readFilesCommand zcat --outFileNamePrefix {params.o_prefix} --outSAMattributes NH HI AS NM MD XS \
+#             --outSAMunmapped Within --outSAMtype BAM SortedByCoordinate --quantMode TranscriptomeSAM GeneCounts \
+#             --outFilterMultimapNmax 50 #$logging
+#         mv {params.o_prefix}Log.final.out {output.log}
+#         """
+#
+# rule mv_alignment:
+#     input:  "tmp/star_alignment/{sample}_Aligned.sortedByCoord.out.bam",
+#             "tmp/star_alignment/{sample}_Aligned.toTranscriptome.out.bam"
+#     output: "alignments/{sample}_aligned_genome.bam",
+#             "alignments/{sample}_aligned_transcriptome.bam"
+#     log: "shell_logs/star_align_{sample}.log"
+#     params:
+#         mem = "2G"
+#     message: "\n#     Move alignment files to destination"
+#     shell:  "mv  {input[0]} {output[0]};"
+#             "mv  {input[1]} {output[1]}"
 
 rule alignment_stat:
     input: expand("logs/star_align_{sample}.final.log", sample=SAMPLES)
     output: "alignments/alignment_stat.html"
     params: mem='1G', o_prefix="alignments/alignment_stat"
-    log: "sge_logs/trim_report.log"
+    log: "shell_logs/trim_report.log"
     shell: """
         {_pipeline_dir}/align_star_report.py {cfg_fn} {params.o_prefix}
         """

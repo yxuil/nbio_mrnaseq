@@ -13,7 +13,7 @@ workdir:
     config["workdir"]
 
 # create path for SGE output, temporary path etc.
-for d in ["logs", 'tmp', 'sge_logs', 'tmp/rseqc']:
+for d in ["logs", 'tmp', 'shell_logs', 'tmp/rseqc']:
     os.makedirs(d, exist_ok=True)
 
 ##### CONFIG #####
@@ -57,12 +57,12 @@ rule all:
                     for de in ['', 'DE_']] ,
             expand("expression/{f}_{m}_table.txt", f=["genes","isoforms"], m=["count", "TPM", "FPKM"])
     params: mem='1G'
-    log: "sge_logs/analysis_done.log"
+    log: "shell_logs/analysis_done.log"
 
 rule report:
     input: "trimmed_fq/trim_stat.html", "QC_graphs/qc_table.html", "alignments/alignment_stat.html", "diff_expr/de_report.html"
     output: "report.html"
-    log: "sge_logs/reort.log"
+    log: "shell_logs/reort.log"
     params: mem="1G"
     shell: """
         {_pipeline_dir}/report.py {cfg_fn}
@@ -120,7 +120,7 @@ rule deliver:
             # for de in ['', 'DE_']
     params:
         o_dir = "mRNAseq_analysis"
-    log: "sge_logs/delivery.log"
+    log: "shell_logs/delivery.log"
     message:
         "#  Copy / move results to delivery folder"
     shell:

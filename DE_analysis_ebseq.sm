@@ -4,7 +4,7 @@ rule ebseq:
     input: "expression/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}.counts.matrix"
     output: "tmp/ebseq/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}_w_FCstat.txt"
     message: "\n    Differential expression analysis between treatment groups with ebseq"
-    log: "sge_logs/{exp}_vs_{ctrl}.{feature}.ebseq.log"
+    log: "shell_logs/{exp}_vs_{ctrl}.{feature}.ebseq.log"
     params:
         mem = "8G",
         conditions=lambda wc: ','.join(map(str, (map(len, [config["treatments"][wc.exp], config["treatments"][wc.ctrl]]))))
@@ -21,7 +21,7 @@ rule ebseq:
 rule de_fdr:
     input: "tmp/ebseq/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}_w_FCstat.txt"
     output: "tmp/ebseq/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}_DE_w_FCstat.txt"
-    log: "sge_logs/{exp}_vs_{ctrl}.{feature}.DE_ebseq.log"
+    log: "shell_logs/{exp}_vs_{ctrl}.{feature}.DE_ebseq.log"
     params:
         mem = "8G",
         pval = config["FDR"]
@@ -39,7 +39,7 @@ rule de_fdr:
 rule de_table:
     input: cfg_fn, "tmp/ebseq/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}{de, _|_DE_}w_FCstat.txt"
     output: "diff_expr/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}{de, _|_DE_}table.txt"
-    log: "sge_logs/format_{exp}_vs_{ctrl}.{feature}.DE_table.log"
+    log: "shell_logs/format_{exp}_vs_{ctrl}.{feature}.DE_table.log"
     params:
         mem = "8G"
     #message: "\n    Make gene table from expression results (rsem) and fold change result (EBseq)"
@@ -54,7 +54,7 @@ rule de_table:
 rule de_report:
     input:
     output: "diff_expr/de_report.html"
-    log: "sge_logs/de_report.log"
+    log: "shell_logs/de_report.log"
     params:
         mem='1G',
         o_prefix="diff_expr/de_report"
