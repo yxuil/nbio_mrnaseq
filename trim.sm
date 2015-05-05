@@ -1,5 +1,4 @@
 ##### TRIMMING #####
-ruleorder: trim_paired > trim_single
 
 rule trim_single:
     input: lambda wc: [ os.path.join(data_dir, f) for f in config['samples'][wc.sample] ]

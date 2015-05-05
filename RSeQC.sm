@@ -10,7 +10,7 @@ outputs a HTML table with thumbnail of graphs and links to full size graph
 #### RseQC
 
 rule RSeQC_refBED:
-    input: ref_base + "/annotation/genes.gtf"
+    input: ref_gtf #ref_base + "/annotation/genes.gtf"
     output: "tmp/rseqc/genes.bed"
     log: "shell_logs/make_rseqc_refBED.log"
     params: mem='1G', tmp="tmp/rseqc/"

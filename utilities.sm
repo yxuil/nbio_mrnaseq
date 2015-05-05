@@ -26,7 +26,7 @@ def is_paired(sample):
     R1s =  [ f for f in config['samples'][sample][0::2] ] # odd elements
     R2s =  [ f for f in config['samples'][sample][1::2] ] # even elements
     if len(R1s) != len(R2s): # number of R1 and R2 do not match
-        print("The sample {} has odd number of reads file. It is single end.".format(sample))
+        # The sample {} has odd number of reads file. It is single end.
         return False
     for r1, r2 in zip(R1s, R2s):
         pos, a, b = dif(r1, r2)
@@ -34,7 +34,7 @@ def is_paired(sample):
         if len(pos) == 1 and sorted([a[0], b[0]]) == ["1", "2"]:
             pass
         else:
-            print("The sample {} has un-matched reads file. It is single end.".format(sample))
+            #("The sample {} has un-matched reads file. It is single end.".format(sample))
             return False
     return  True
 

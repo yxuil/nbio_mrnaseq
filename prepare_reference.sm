@@ -67,13 +67,13 @@ def clean_GTF(gtf_fn, output_fn):
     with open(output_fn, 'w') as gtf_out:
         for trx_id in trx_id_lst:
             gtf_out.writelines(valid_gtf_records[trx_id]['GTF'])
-    with open("/tmp/dup.gtf", 'w') as dup_out:
+    with open("tmp/dup.gtf", 'w') as dup_out:
         for trx_id in trx_id_lst:
             if trx_id in dup_gtf_records:
                 dup_out.writelines(dup_gtf_records[trx_id]['GTF'])
 
 rule fix_gtf:
-    input: os.path.join(ref_base, "annotation", "genes.gtf")
+    input: ref_gtf #os.path.join(ref_base, "annotation", "genes.gtf")
     output: "tmp/genes_cleaned.gtf"
     log: "shell_logs/reference_fix_gtf.log"
     params:
@@ -89,7 +89,7 @@ RSEM_IDX= [os.path.join(ref_base,  "RSEMIndex", "genome.{}.ebwt").format(i) for 
           + [os.path.join(ref_base,  "RSEMIndex","genome.rev.{}.ebwt").format(i) for i in [1,2]]
 rule rsem_index:
     input:
-        fa = os.path.join(ref_base, "genome.fa"),
+        fa = ref_fa, #os.path.join(ref_base, "genome.fa"),
         gtf= "tmp/genes_cleaned.gtf"
     output: RSEM_IDX
     log: "shell_logs/reference_index.log"

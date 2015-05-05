@@ -16,8 +16,8 @@ output: expression/{exp}_vs_{ctrl}.{feature, genes|isoforms}.counts.matrix
 ## <sample>..transcript.bam
 ## <sample>.transcript.sorted.bam
 ## <sample>.transcript.sorted.bam.bai
-RSEM_IDX= [os.path.join(ref_base,  "RSEMIndex", "genome.{i}.ebwt").format(i=i) for i in range(1,5)]\
-          +  [os.path.join(ref_base,  "RSEMIndex","genome.rev.{i}.ebwt").format(i=i) for i in [1,2]]
+RSEM_IDX= [os.path.join("ref",  "RSEMIndex", "genome.{i}.ebwt").format(i=i) for i in range(1,5)]\
+          +  [os.path.join("ref",  "RSEMIndex","genome.rev.{i}.ebwt").format(i=i) for i in [1,2]]
 
 ruleorder: rsem_bam > rsem_fastq
 rule rsem_bam:
@@ -30,7 +30,7 @@ rule rsem_bam:
     threads: 8
     params:
         mem = "10G",
-        ref= ref_base + "/RSEMIndex/genome",
+        ref= "ref/RSEMIndex/genome",
         tmp= "tmp/rsem_estimate/",
         pair_option=lambda wildcards: "--paired-end" if is_paired(wildcards.sample) else ""
     message: "\n#    RSEM estimates expression from sample {wildcards.sample} aligned BAM file"

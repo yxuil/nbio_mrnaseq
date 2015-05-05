@@ -32,12 +32,15 @@ ctrlGrp_lst = [ str.strip(comp.split("-")[1]) for comp in config["comparisons"]]
 _pipeline_dir = os.path.abspath(sys.path[0])
 
 #### set up reference folder ####
-ref_base = config.get('ref_base', "")
+ref_base = config.get('ref_base', "ref/")
 
 if not os.path.isdir(ref_base): # no ref dir defined, use current work_dir/ref
-    ref_base = "ref"
+    ref_base = "ref/"
     config["ref_base"] = ref_base
 
+ref_fa  = config.get('ref_fa', os.path.join(ref_base, 'genome.fa'))
+ref_gtf = config.get("ref_gtf", os.path.join(ref_base, "annotation", "genes.gtf"))
+print(ref_base,ref_fa, ref_gtf)
 # include software/program information
 include: 
     "toolsinfo"
@@ -75,8 +78,10 @@ include:
 
 include:
     "trim.sm"
+
 include:
     "RSeQC.sm"
+
 include:
     "utilities.sm"
 
