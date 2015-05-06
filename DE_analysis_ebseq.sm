@@ -24,7 +24,7 @@ rule de_fdr:
     log: "shell_logs/{exp}_vs_{ctrl}.{feature}.DE_ebseq.log"
     params:
         mem = "8G",
-        pval = config["FDR"]
+        pval = config["fdr"]
     message:
         "Filter for differentially expressed genes by FDR"
     shell: """
@@ -88,7 +88,7 @@ rule de_fdr_all:
     input: "expression/all.{feature, [a-zA-Z]+}_w_FCstat.txt"
     output: "expression/all.{feature, [a-zA-Z]+}_DE_w_FCstat.txt"
     params: 
-        pval = config["FDR"]
+        pval = config["fdr"]
     message:
             "\nFilter for differentially expressed genes by FDR"
     shell: "{RSEM}/rsem-control-fdr {input} {params.pval} {output}"

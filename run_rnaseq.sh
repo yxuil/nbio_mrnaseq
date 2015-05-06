@@ -1,3 +1,4 @@
+
 progPath=`dirname $0`
 exe=`basename $0`
 echo "######## mRNAseq pipeline #########"
@@ -39,7 +40,7 @@ if hash $snakemake_com 2>/dev/null; then
 #            cfg_line=${cfg_line//"="/" "} # replace = with spaces
 #            cfg_line=`echo $cfg_line | tr -s [\'\"\=] ' '` # replace =, ", ' with spaces
             cfg=($cfg_line)             # separate out the path (by space)
-            workdir=${cfg[2]}           # get the path
+            workdir=${cfg[1]}           # get the path
             [ ! -d ${cfg} ] && mkdir -p ${workdir}  # make the work dir if not exists
 
             # remove comments from the config file

@@ -40,10 +40,6 @@ if not os.path.isdir(ref_base): # no ref dir defined, use current work_dir/ref
 
 ref_fa  = config.get('ref_fa', os.path.join(ref_base, 'genome.fa'))
 ref_gtf = config.get("ref_gtf", os.path.join(ref_base, "annotation", "genes.gtf"))
-print(ref_base,ref_fa, ref_gtf)
-# include software/program information
-include: 
-    "toolsinfo"
 
 
 ##### test rule ####
@@ -68,10 +64,18 @@ rule report:
     log: "shell_logs/reort.log"
     params: mem="1G"
     shell: """
+        {SKEWER} -v | head -1 > software_version.txt
+        {STAR} --version | head -1 >> software_version.txt
+        {SAMTOOLS} --version | head -1 >> software_version.txt
+        {RSEM}/rsem-calculate-expression -v  | head -1 >> software_version.txt
+        {BOWTIE}/bowtie --version  | head -1 >> software_version.txt
+        {FEATCOUNT}/featureCounts -v  | head -1 >> software_version.txt
         {_pipeline_dir}/report.py {cfg_fn}
         """
-# include:
-#     'DE_analysis_ebseq.sm'
+
+# include software/program information
+include:
+    "toolsinfo"
 
 include:
     'quant_rsem.sm'
@@ -88,23 +92,31 @@ include:
 # aligner. STAR or RSEM
 include: "prepare_reference.sm"
 
-include: 
-	"align_star.sm"
-include: 
-	"DE_analysis_ebseq.sm"
-#if config["align_exe"] == "STAR":
-#    include: "align_star.sm"
-#elif config['align_exe'] == "RSEM":
-#    include:
-#        "",
-#        "format_rsem_results.py"
+if config["align_exe"] == "STAR":
+    include: "align_star.sm"
+elif config['align_exe'] == "RSEM":
+    include: "format_rsem_results.py"
+    include: "quant_rsem.sm"
+else:
+    print("\n{}[ERROR] config: ALIGN_exe needs to be one of STAR, RSEM, or BWA{}\n".format(bcolors.FAIL, bcolors.ENDC))
+
+# quantification
+if config["quant_exe"].upper() == "RSEM":
+    include: "quant_rsem.sm"
+elif config["quant_exe"].lower() == "featurecounts":
+    include: "quant_featurecounts.sm"
+elif config["quant_exe"].lower() == "htseq-count":
+    include: "quant_htseq.sm"
+else:
+    print("\n{}[ERROR] config: QUANT_exe needs to be one of RSEM, featureCounts, or HTSeq-count{}\n".format(bcolors.FAIL, bcolors.ENDC))
 
 # program for differential expression analysis
-if config["DE_exe"] == "EDGER":
+if config["de_exe"].upper() == "EDGER":
     include: "DE_analysis_edger.sm"
-
-elif config["DE_exe"] == "EBSEQ":
+elif config["de_exe"].upper() == "EBSEQ":
     include: "DE_analysis_ebseq.sm"
+else:
+    print("\n{}[ERROR] config: DE_exe needs to be one of EBseq, DEseq, or EdgeR{}\n".format(bcolors.FAIL, bcolors.ENDC))
 
 # use all conditions in one conparison
 rule one_compare: 
@@ -144,3 +156,6 @@ rule deliver:
 rule remove:
     shell: "rm -r rsem_estimate/ trimmed_fq/ DE_gene.txt gene_reads_counts.matrix *snakejob*"
 
+vars = {k:v for k, v in globals().items() if "_VERSION" in k}
+for k, v in (vars.items()):
+    print(k.replace("_VERSION", "\t"), v)
