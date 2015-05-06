@@ -1,17 +1,18 @@
 progPath=`dirname $0`
 exe=`basename $0`
 echo "######## mRNAseq pipeline #########"
-echo "USAGE:    " $exe " config_file [snakemake options]"
-echo "examples: " $exe " config_file"
-echo "            Run pipeline with defaults"
-echo "          " $exe " config_file -n -p"
-echo "            Dont run pipeline; just print out shell command"
-echo "          " $exe " configfile deliver"
-echo "            deliver the result"
-echo "          " $exe " -h"
-echo "            Print pipeline options"
-echo "          " $exe " "
-echo "            "
+USAGE="USAGE:     $exe  config_file [snakemake options]
+ examples:  $exe  config_file
+               => Run pipeline with defaults
+            $exe  config_file -n -p
+               => Dont run pipeline; just print out shell command
+            $exe  configfile deliver
+               => Deliver the result
+            $exe  -h
+               => Print snakemake options
+            $exe
+               => Print this help
+            "
 
 sm_com=`grep SNAKEMAKE ${progPath}/toolsinfo`
 sm_com=(${sm_com/=/ / })
@@ -29,29 +30,36 @@ if hash $snakemake_com 2>/dev/null; then
             $snakemake_com -h
         elif [ -f $1 ]; then
 
-            # remove comments from the config file
+            # make JSON file from the config file
             # and copy to workdir
-            cfg_line=`grep workdir $1`     # grep the 'workdir' line
-            cfg_line=${cfg_line//"\""/" "} # replace " with spaces
-            cfg_line=${cfg_line//"\'"/" "} # replace ' with spaces
+            cfg_line=`grep workdir $1 | tr -s [\'\"\=] ' '`  # grep the 'workdir' line
+                                                            # replace =, ", ' with spaces
+#            cfg_line=${cfg_line//"\""/" "} # replace " with spaces
+#            cfg_line=${cfg_line//"\'"/" "} # replace ' with spaces
+#            cfg_line=${cfg_line//"="/" "} # replace = with spaces
+#            cfg_line=`echo $cfg_line | tr -s [\'\"\=] ' '` # replace =, ", ' with spaces
             cfg=($cfg_line)             # separate out the path (by space)
             workdir=${cfg[2]}           # get the path
             [ ! -d ${cfg} ] && mkdir -p ${workdir}  # make the work dir if not exists
 
             # remove comments from the config file
             # use a tmp file to avoid the run_config.json gets cleared when the source are destinate files are the same
-            dt=`date '+%y%m%d_%H%M%S'` # use date_time in filename
-            tmp_cfg=/tmp/_rnaseq_${dt}.tmp
-            grep -v "^\x*\#" $1 > ${tmp_cfg}
-            mv ${tmp_cfg} ${workdir}/run_config.json
+#            dt=`date '+%y%m%d_%H%M%S'` # use date_time in filename
+#            tmp_cfg=/tmp/_rnaseq_${dt}.tmp
+#            grep -v "^\x*\#" $1 > ${tmp_cfg}
+#            mv ${tmp_cfg} ${workdir}/run_config.json
+
+            # copy cfg file and save coverted json file to workdirectory
+            cp $1 ${workdir}
+            ${progPath}/ini2json.py $1 > ${workdir}/run_config.json
 
             cd ${workdir}
 
             # gather the rest of options
-            shift
+            shift; shift
             if [[ " $* " == *" -j "* ]]; then
                 set -x
-                $snakemake_com -s ${progPath}/${snakemake_file}  "$@"
+                $snakemake_com -s ${progPath}/${snakemake_file} run_config.json "$@"
             else
                 if hash nproc 2>/dev/null; then  let p=`nproc`/2  # use half of the available cores
                 else let p=`grep processor /proc/cpuinfo | wc -l`/2

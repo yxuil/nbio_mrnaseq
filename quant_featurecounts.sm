@@ -1,0 +1,36 @@
+Summarize a single-end read dataset using 5 threads:
+
+featureCounts -T 5 -t exon -g gene_id -a annotation.gtf -o counts.txt mapping_results_SE.sam
+
+Summarize a BAM format dataset:
+
+featureCounts -t exon -g gene_id -a annotation.gtf -o counts.txt mapping_results_SE.bam
+
+Summarize multiple datasets at the same time:
+
+featureCounts -t exon -g gene_id -a annotation.gtf -o counts.txt library1.bam library2.bam library3.bam
+
+Perform strand-specific read counting (use '-s 2' if reversely stranded):
+
+featureCounts -s 1 -t exon -g gene_id -a annotation.gtf -o counts.txt mapping_results_SE.bam
+
+Summarize paired-end reads and count fragments (instead of reads):
+
+featureCounts -p -t exon -g gene_id -a annotation.gtf -o counts.txt mapping_results_PE.bam
+
+Summarize multiple paired-end datasets:
+
+featureCounts -p -t exon -g gene_id -a annotation.gtf -o counts.txt library1.bam library2.bam library3.bam
+
+Count the fragments that have fragment length between 50bp and 600bp only:
+
+featureCounts -p -P -d 50 -D 600 -t exon -g gene_id -a annotation.gtf -o counts.txt mapping_results_PE.bam
+
+Count those fragments that have both ends mapped only:
+
+featureCounts -p -B -t exon -g gene_id -a annotation.gtf -o counts.txt mapping_results_PE.bam
+
+Exclude chimeric fragments from fragment counting:
+
+featureCounts -p -C -t exon -g gene_id -a annotation.gtf -o counts.txt mapping_results_PE.bam
+

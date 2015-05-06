@@ -8,7 +8,7 @@ import re, time
 
 def generate_report(config):
     outputDir= config.get("workdir", "")
-    PIname = config.get("PIname", "")
+    PIname = config.get("piname", "")
     description = config.get("project", "")
     sample_num = len(config.get("samples", ""))
     organism = config.get("organism", "")

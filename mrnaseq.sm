@@ -22,7 +22,7 @@ duplicates=set()
 SAMPLES = [ s for trt in sorted(config["treatments"].keys()) for s in config["treatments"][trt] \
               if not (s in duplicates or duplicates.add(s))]
 w_dir =  config["workdir"]
-delivery = config.get("delivery", "./delivery/")
+delivery = config.get("delivery", config["workdir"] + "./delivery/")
 data_dir = config["data_dir"]
 
 expGrp_lst =  [ str.strip(comp.split("-")[0]) for comp in config["comparisons"]]
