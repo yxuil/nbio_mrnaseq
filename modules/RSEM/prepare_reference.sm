@@ -1,0 +1,34 @@
+#### STAR prepare reference ####
+
+
+# rule link_ref:
+#     input: "run_config.json"
+#     output:
+#         fa = os.path.join(ref_base, "genome.fa"),
+#         gtf= os.path.join(ref_base, "annotation", "genes.gtf")
+#     log: "shell_logs/reference_index.log"
+#     message:"""
+#         ##
+#         #  Set up reference directory
+#         ##
+#     """
+#     run:
+#         ref_gtf = config.get("ref_gtf", "")
+#         ref_fa  = config.get("ref_fa" , "")
+#         print("ref_base",ref_base)
+#         print("ref_gtf",ref_gtf)
+#         print("ref_fa",ref_fa)
+#
+#         if not os.path.isfile(output.fa): # genome.fa does not exist in default location
+#             if os.path.isfile(ref_fa):
+#                 shell("cp {ref_fa} {output.fa}")
+#             else:
+#                 print("No suitable reference fasta file")
+#
+#         if not os.path.isfile(output.gtf): # annotation does not exist in defualt location
+#             if os.path.isfile((ref_gtf)):
+#                 shell("cp {ref_gtf} {output.gtf}")
+#             else:
+#                 print("No suitable annotation GTF file")
+
+

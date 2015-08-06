@@ -1,0 +1,25 @@
+
+curdir = srcdir(".")
+rule report:
+    input: "trimmed_fq/trim_stat.html", "QC_graphs/qc_table.html", "alignments/alignment_stat.html", "diff_expr/de_report.html"
+    output:
+        html = "report/report.html",
+        css  = "report/CSS/report.css",
+        png  = "report/workflow.png"
+    log: "shell_logs/report.log"
+    params:
+        mem="1G",
+        report_dir = "report"
+    shell: """
+        {SKEWER} -v | head -1 > software_version.txt
+        {STAR} --version | head -1 >> software_version.txt
+        {SAMTOOLS} 2>&1 | head -3 | tail -1 >> software_version.txt
+        {RSEM}/rsem-calculate-expression -v  | head -1 >> software_version.txt
+        {BOWTIE}/bowtie --version  | head -1 >> software_version.txt
+        {FEATCOUNT}/featureCounts -v  | head -1 >> software_version.txt
+        cp {curdir}/workflow.png {output.png}
+        cp -r {curdir}/CSS {params.report_dir}
+        cp -r {curdir}/JS {params.report_dir}
+        cp {curdir}/redirect.html report.html
+        {curdir}/report.py {config_fn} > {output.html}
+        """

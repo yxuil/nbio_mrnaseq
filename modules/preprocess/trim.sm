@@ -1,0 +1,70 @@
+##### TRIMMING #####
+
+rule trim_single:
+    input: lambda wc: [ os.path.join(data_dir, f) for f in config['samples'][wc.sample] ]
+    output: "trimmed_fq/{sample}.fq.gz"
+    log: "shell_logs/{sample}_trim.log"
+    params:
+        mem = "4G",
+        prefix = "trimmed_fq/{sample}",
+        log="logs/{sample}_trim.log"
+    threads: 8
+    message: """\n##### Trim sequencing adaptor from single end reads of sample: {wildcards.sample}
+    # rule:    trim_single
+    # INPUT:   {input}
+    # OUTPUT:  {output}
+    # PROGRAM: skewer
+    """
+    run:
+        for fname in input:
+            shell("{SKEWER} -x AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC "
+                  "-y AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT -q 20 "
+                  "-k 15 -l 25 -t {threads} -o {params.prefix} {fname}")
+            shell("cat {params.prefix}.fastq >> {params.prefix}.fq")
+            shell("cat {params.prefix}.log >> {params.log}")
+            shell("rm  {params.prefix}.fastq {params.prefix}.log")
+        shell("gzip  {params.prefix}.fq")
+
+rule trim_paired:
+    input:
+        r1 = lambda wc: [ os.path.join(data_dir, f) for f in config['samples'][wc.sample][0::2] ], # odd elements
+        r2 = lambda wc: [ os.path.join(data_dir, f) for f in config['samples'][wc.sample][1::2] ] # even elements 
+    output: "trimmed_fq/{sample}_R1.fq.gz", "trimmed_fq/{sample}_R2.fq.gz"
+    log: "shell_logs/{sample}_trim.log"
+    params:
+        mem = "4G",
+        prefix = "trimmed_fq/{sample}",
+        log="logs/{sample}_trim.log"
+    threads: 8
+    message: """\n##### Trim sequencing adaptor from paired end reads of sample: {wildcards.sample}
+    # rule:    trim_paired
+    # INPUT:   {input}
+    # OUTPUT:  {output}
+    # PROGRAM: skewer
+    """
+    run:
+        for r1_fname, r2_fname in zip(input.r1, input.r2):
+            shell( "{SKEWER} -x AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC "
+                   "-y AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT -q 20 "
+                   "-k 15 -l 25 -t {threads} -o {params.prefix} {r1_fname} {r2_fname}")
+            shell("cat {params.prefix}-pair1.fastq >> {params.prefix}_R1.fq;"
+                  "cat {params.prefix}-pair2.fastq >> {params.prefix}_R2.fq")
+            shell("cat {params.prefix}.log >> {params.log}")
+            shell("rm  {params.prefix}-pair?.fastq {params.prefix}.log")
+        shell("gzip  {params.prefix}_R1.fq; gzip  {params.prefix}_R2.fq")
+
+trim_report = srcdir("trim_report.py")
+rule trim_stat:
+    input: expand("logs/{sample}_trim.log", sample=SAMPLES)
+    output: "trimmed_fq/trim_stat.html"
+    params: mem='1G', o_prefix="trimmed_fq/trim_stat"
+    log: "shell_logs/trim_report.log"
+    message: """\n##### Reads trimming stats
+    # rule:    trim_report
+    # INPUT:   {input}
+    # OUTPUT:  {output}
+    # PROGRAM: trim_report.py
+    """
+    shell: """
+        {trim_report} {config_fn} {params.o_prefix}
+        """

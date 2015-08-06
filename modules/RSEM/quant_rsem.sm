@@ -19,6 +19,80 @@ output: expression/{exp}_vs_{ctrl}.{feature, genes|isoforms}.counts.matrix
 RSEM_IDX= [os.path.join("ref",  "RSEMIndex", "genome.{i}.ebwt").format(i=i) for i in range(1,5)]\
           +  [os.path.join("ref",  "RSEMIndex","genome.rev.{i}.ebwt").format(i=i) for i in [1,2]]
 
+##### INDEX #####
+
+
+def clean_GTF(gtf_fn, output_fn):
+    valid_gtf_records = {}
+    trx_id_lst = []
+    dup_gtf_records = {}
+
+    with open(gtf_fn, 'r') as gtf_in:
+        for line in gtf_in:
+            fields = line.strip().split('\t')
+
+            if len(fields[0]) > 5: continue # skip non 'chrXX' lines
+            trx_id = fields[-1].split(";")[1].split('"')[1] # gene_id "NM_032291"; transcript_id "NM_032291";
+            if trx_id not in valid_gtf_records: # make a new trx entry if it is not exist yet
+                valid_gtf_records[trx_id] = {'transcript_id': trx_id,
+                                             'chr': fields[0],
+                                             'strand': fields[6],
+                                             'GTF': []}
+                trx_id_lst.append(trx_id) # for late use to keep the GTF records in the same order
+
+            if valid_gtf_records[trx_id]['chr'] != fields[0] or valid_gtf_records[trx_id]['strand'] != fields[6]:
+                # same trx_id on other chromosome
+                if trx_id not in dup_gtf_records:
+                    dup_gtf_records[trx_id] = {'transcript_id': trx_id,
+                                             'chr': fields[0],
+                                             'strand': fields[6],
+                                             'GTF': []}
+                dup_gtf_records[trx_id]['GTF'].append(line)
+            else:
+                valid_gtf_records[trx_id]['GTF'].append(line)
+
+    with open(output_fn, 'w') as gtf_out:
+        for trx_id in trx_id_lst:
+            gtf_out.writelines(valid_gtf_records[trx_id]['GTF'])
+    with open("tmp/dup.gtf", 'w') as dup_out:
+        for trx_id in trx_id_lst:
+            if trx_id in dup_gtf_records:
+                dup_out.writelines(dup_gtf_records[trx_id]['GTF'])
+
+#rule fix_gtf:
+#    input: ref_gtf #os.path.join(ref_base, "annotation", "genes.gtf")
+#    output: "tmp/genes_cleaned.gtf"
+#    log: "shell_logs/reference_fix_gtf.log"
+#    params:
+#        mem="1G"
+#    run: clean_GTF(input[0], output[0])
+
+#
+# rule link_ref:
+#     input: ref_dir + "./genome.fa"
+#     output: ref_dir + "./RSEMIndex/genome.fa"
+#     shell: "ln -sf {input} {output}\n touch {output}"
+
+rule rsem_index:
+    input:
+        fa = ref_fa, #os.path.join(ref_base, "genome.fa"),
+        gtf= ref_gtf #"tmp/genes_cleaned.gtf"
+    output: RSEM_IDX
+    log: "shell_logs/reference_index.log"
+    params:
+        mem = "2G",
+        ref = os.path.join(ref_base, "RSEMIndex","genome")
+    message: """\n##### Make RSEM index with reference sequence and gene annotation
+    # rule: rsem_index
+    # INPUT:   {input}
+    # OUTPUT:  {output}
+    # PROGRAM: rsem-prepare-reference
+    """
+    shell:
+        #clean_GTF(input.gtf, 'gene_cleaned.gtf')
+        "{RSEM}/rsem-prepare-reference --gtf {input.gtf} --bowtie --bowtie-path {BOWTIE} {input.fa} {params.ref};"
+        #"ln -s {input.fa} {ref_base}/RSEMIndex/genome.fa"
+
 ruleorder: rsem_bam > rsem_fastq
 rule rsem_bam:
     input:
@@ -33,7 +107,12 @@ rule rsem_bam:
         ref= "ref/RSEMIndex/genome",
         tmp= "tmp/rsem_estimate/",
         pair_option=lambda wildcards: "--paired-end" if is_paired(wildcards.sample) else ""
-    message: "\n#    RSEM estimates expression from sample {wildcards.sample} aligned BAM file"
+    message: """\n##### RSEM estimates expression from sample {wildcards.sample} aligned BAM file
+    # rule: rsem_bam
+    # INPUT:   {input}
+    # OUTPUT:  {output}
+    # PROGRAM: rsem-calculate-expression
+    """
     shell: """
             # if [ -z "$SGE_O_WORKDIR" ]; then
             #     logging="2>&1 | tee {log}" # shell logging
@@ -43,7 +122,7 @@ rule rsem_bam:
             {RSEM}/rsem-calculate-expression {params.pair_option} --bam {input.bam} -p {threads} {params.ref} {params.tmp}/{wildcards.sample} #$logging
             """
 
-rule make_exp_matrix:
+rule rsem_exp_matrix:
     input: lambda wc: ["expression/{s}_{f}_table.txt".format(s=sample, f=wc.feature) for sample in \
                        config["treatments"][wc.exp] + config["treatments"][wc.ctrl] ]
     output: "expression/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}.counts.matrix"
@@ -51,7 +130,12 @@ rule make_exp_matrix:
     params:
         mem = "1G",
         header_str = lambda wildcards: "\t".join([""] + config["treatments"][wildcards.exp] + config["treatments"][wildcards.ctrl])
-    message: "\n    Merging reads count for {wildcards.exp}_vs_{wildcards.ctrl}.{wildcards.feature} data matrix"
+    message: """\n##### Merging reads count for {wildcards.exp}_vs_{wildcards.ctrl}.{wildcards.feature} data matrix
+    # rule: rsem_exp_matrix
+    # INPUT:   {input}
+    # OUTPUT:  {output}
+    # PROGRAM: rsem-generate-data-matrix
+    """
     shell: """
              {RSEM}/rsem-generate-data-matrix {input} > {output}
              sed -i '1s/.*/{params.header_str}/' {output}
@@ -65,7 +149,12 @@ rule mv_expression:
     log: "shell_logs/rsem_estimate_{sample}.log"
     params:
         mem = "1G"
-    message: "#     move expression estimation to destination"
+    message: """\n##### move expression estimation to destination
+    # rule: mv_expression
+    # INPUT:   {input}
+    # OUTPUT:  {output}
+    # PROGRAM: mv
+    """
     shell:    "mv {input[0]}  {output[0]}; "
               "mv {input[1]}  {output[1]}"
 
@@ -83,17 +172,23 @@ rule mv_expression:
 #         sed -i '1s/.*/{header_str}/' {output}
 #         """
 
+rsem_write_exp = srcdir("quant_rsem_write_expTable.py")
 rule expression_table:
     input: lambda wc: [ "expression/{sample}_{feature}_table.txt".format(sample=s, feature=wc.feature) for s in SAMPLES ]
     output: "expression/{feature}_count_table.txt",
             "expression/{feature}_TPM_table.txt",
             "expression/{feature}_FPKM_table.txt"
     log: "shell_logs/merge_rsem_{feature}_expression.log"
-    message: "#   merge all sample {wildcards.feature} expression to count, TPM, and FPKM tables"
+    message: """\n##### merge all sample {wildcards.feature} expression to count, TPM, and FPKM tables
+    # rule: expression_table
+    # INPUT:   {input}
+    # OUTPUT:  {output}
+    # PROGRAM: quant_rsem_write_expTable.py
+    """
     params:
         mem = "1G"
     shell: """
-        {_pipeline_dir}/quant_rsem_write_expTable.py {cfg_fn} {wildcards.feature}
+        {rsem_write_exp} {config_fn} {wildcards.feature}
         """
 
 #--bam [--paired-end] input reference_name sample_name
@@ -111,7 +206,12 @@ rule rsem_fastq:
     params:
         mem = "8G",
         ref= ref_base + "./RSEMIndex/genome"
-    message: "\n    Estimate expression from sample {wildcards.sample} RNAseq reads"
+    message: """\n##### Estimate expression from sample {wildcards.sample} RNAseq raw reads
+    # rule: rsem_fastq
+    # INPUT:   {input}
+    # OUTPUT:  {output}
+    # PROGRAM: rsem-calculate-expression
+    """
     run:
         read1_lst = ",".join(input.r1)
         pair_option, read2_lst = ("--paired-end", ",".join(input.r1).replace("R1", "R2") ) \

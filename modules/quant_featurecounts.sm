@@ -6,17 +6,16 @@ rule featurecounts:
         mem='8G',
         log="shell_log/fc_{sample}.log"
     version: FEATURECOUNTS_VERSION
-    mesage:"""# Count reads for feature with FeatureCounts.
-        # input:
-        # {input}
-        # output:
-        # {output}
-        #
+    mesage:"""#### Count reads for feature with FeatureCounts.
+    # rule: featurecounts
+    # input:  {input}
+    # output: {output}
+    #
     """
     threads: 5
     shell:
         """
-        {FEATCOUNT}/featureCounts -T {threads}
+        {FEATCOUNT}/featureCounts -T {threads}  -t gene -g gene_id -a {GTF} -o {output} {input}
     """
 
 # Summarize a single-end read dataset using 5 threads:

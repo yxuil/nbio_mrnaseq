@@ -12,7 +12,7 @@ NOVOALIGN     = NOVO + "/novoalign"
 NOVOINDEX     = NOVO + "/novoindex"
 NOVOSORT      = NOVO + "/novosort"
 UCSC          = TOOLDIR+"/UCSCtools/"
-STAR          = TOOLDIR+"/STAR-dir/STAR-2.4.1/STAR"
+STAR          = TOOLDIR+"/STAR-dir/STAR-2.4.2a/STAR"
 SAMTOOLS      = TOOLDIR+"/samtools/samtools"
 CUFF          = TOOLDIR+"/cufflinks-2.1.1.Linux_x86_64/cufflinks"
 CUFFMERGE     = TOOLDIR+"/cufflinks-2.1.1.Linux_x86_64/cuffmerge"
@@ -21,7 +21,7 @@ EXPR          = TOOLDIR+"/express-1.5.1-linux_x86_64/express"
 RSEM          = TOOLDIR+"/rsem-dir/rsem-1.2.20/"
 BOWTIE        = TOOLDIR+"/bowtie-dir/bowtie-1.0.0/"
 FEATCOUNT     = TOOLDIR+"/subread-dir/subread-1.4.6-p2-Linux-x86_64/bin/"
-PY2EXE         = TOOLDIR+ "anaconda/envs/py2Centos5/bin/"  # path to python 2 scripts, i.e. RseQC
+PY2EXE         = TOOLDIR+ "anaconda/envs/py2/bin/"  # path to python 2 scripts, i.e. RseQC
 JAVA          = "java"
 python       =  "/mnt/software/anaconda/envs/py3/bin/python"
 

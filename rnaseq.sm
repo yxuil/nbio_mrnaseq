@@ -4,10 +4,9 @@ Please see the example run_config.json file for configuration file format
 
 import sys, os, shutil, json
 
-cfg_fn = "run_config.json"
-
+config_fn="run_config.json"
 configfile:
-    cfg_fn
+    config_fn
 
 workdir:
     config["workdir"]
@@ -29,7 +28,7 @@ expGrp_lst =  [ str.strip(comp.split("-")[0]) for comp in config["comparisons"]]
 ctrlGrp_lst = [ str.strip(comp.split("-")[1]) for comp in config["comparisons"]]
 
 # HACK: to get current Snakefile directory
-_pipeline_dir = os.path.abspath(sys.path[0])
+_pipeline_dir = srcdir('.') #os.path.abspath(sys.path[0])
 
 #### set up reference folder ####
 ref_base = config.get('ref_base', "ref/")
@@ -58,63 +57,50 @@ rule all:
     params: mem='1G'
     log: "shell_logs/analysis_done.log"
 
-rule report:
-    input: "trimmed_fq/trim_stat.html", "QC_graphs/qc_table.html", "alignments/alignment_stat.html", "diff_expr/de_report.html"
-    output: "report.html"
-    log: "shell_logs/reort.log"
-    params: mem="1G"
-    shell: """
-        {SKEWER} -v | head -1 > software_version.txt
-        {STAR} --version | head -1 >> software_version.txt
-        {SAMTOOLS} --version | head -1 >> software_version.txt
-        {RSEM}/rsem-calculate-expression -v  | head -1 >> software_version.txt
-        {BOWTIE}/bowtie --version  | head -1 >> software_version.txt
-        {FEATCOUNT}/featureCounts -v  | head -1 >> software_version.txt
-        {_pipeline_dir}/report.py {cfg_fn}
-        """
 
 # include software/program information
 include:
-    "toolsinfo"
+    "config/toolsinfo"
 
 include:
-    'quant_rsem.sm'
+    "modules/utilities.sm"
 
 include:
-    "trim.sm"
+    "modules/preprocess/trim.sm"
 
 include:
-    "RSeQC.sm"
+    "modules/RSeQC/RSeQC.sm"
 
 include:
-    "utilities.sm"
-
-# aligner. STAR or RSEM
-include: "prepare_reference.sm"
+    "modules/report/report.sm"
 
 if config["align_exe"] == "STAR":
-    include: "align_star.sm"
+    include: "modules/STAR/align_star.sm"
 elif config['align_exe'] == "RSEM":
-    include: "format_rsem_results.py"
-    include: "quant_rsem.sm"
+    # include: "format_rsem_results.py"
+    include: "modules/RSEM/quant_rsem.sm"
 else:
     print("\n{}[ERROR] config: ALIGN_exe needs to be one of STAR, RSEM, or BWA{}\n".format(bcolors.FAIL, bcolors.ENDC))
 
 # quantification
+
+include:
+    'modules/RSEM/quant_rsem.sm'
+
 if config["quant_exe"].upper() == "RSEM":
-    include: "quant_rsem.sm"
+    include: "modules/RSEM/quant_rsem.sm"
 elif config["quant_exe"].lower() == "featurecounts":
-    include: "quant_featurecounts.sm"
+    include: "modules/quant_featurecounts.sm"
 elif config["quant_exe"].lower() == "htseq-count":
-    include: "quant_htseq.sm"
+    include: "modules/quant_htseq.sm"
 else:
     print("\n{}[ERROR] config: QUANT_exe needs to be one of RSEM, featureCounts, or HTSeq-count{}\n".format(bcolors.FAIL, bcolors.ENDC))
 
 # program for differential expression analysis
 if config["de_exe"].upper() == "EDGER":
-    include: "DE_analysis_edger.sm"
+    include: "modules/EdgeR/DE_analysis_edger.sm"
 elif config["de_exe"].upper() == "EBSEQ":
-    include: "DE_analysis_ebseq.sm"
+    include: "modules/EBseq/DE_analysis_ebseq.sm"
 else:
     print("\n{}[ERROR] config: DE_exe needs to be one of EBseq, DEseq, or EdgeR{}\n".format(bcolors.FAIL, bcolors.ENDC))
 

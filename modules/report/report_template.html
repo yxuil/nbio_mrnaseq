@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}project summary{% endblock %}
+{% block mainarea %}
+
+{% endblock %}
+<!DOCTYPE html>
+<html lang="en-US">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+        
+    <title>mRNAseq Data Analysis Report</title>
+    <meta name="description" content="mRNAseq data analysis report - Xiaoyu Liu @ BRC, UWBC"/>
+                
+    <link rel="stylesheet" href="CSS/style-report.css" type="text/css" media="all">
+    <link rel="stylesheet" href="CSS/font-awesome.min.css" type="text/css" media="all">
+    
+</head>
+    
+<body>
+    <a class="skip-link screen-reader-text" href="#content">Skip to content</a>
+    <div class="outer-wrap">
+
+    <header class="masthead">
+
+        <div class="centered">
+            <div class="site-branding">
+                <h1 class="site-title">mRNAseq Data Analysis Report</h1>
+            </div><!-- .site-title -->
+        </div><!-- .centered -->
+        <nav class="main-menu">
+            --
+        </nav>
+    </header><!-- .masthead -->
+
+        
+    <div class="content">
+        
+        <div class="sidebar">
+            <div class="squish-container">
+            <h3>Analysis:</h3>
+            <nav class="example-menu">
+                <ul>
+                    <li><a href='#summary'>Summary</a></li>
+                    <li><a href='#method'>Method</a></li>
+                    <li><a href='#data_summary'>Data</a></li>
+                    <li><a href='#BAM_summary'>Alignments</a></li>
+                    <li><a href='#DE_summary'>Gene Expression</a></li>
+                    <li><a href='#software'>Software</a></li>
+                </ul>
+            </nav><!-- .example-menu -->
+            </div>
+        </div><!-- .sidebar -->
+        
+        <main class="main-area">
+            <article class="result-content">
+                <strong><a id=summary name=summary>Summary</a></strong>
+                    <table class="brc">
+                        <tr><th scope='row'>PI Name</th><td style="white-space:pre-wrap">{{PIname}}</td></tr>
+                        <tr><th scope='row'>Project Description</th><td style="white-space:pre-wrap">{{description}}</td></tr>
+                        <tr><th scope='row'>Sample</th><td style="white-space:pre-wrap">{{sample_num}}</td></tr>
+                        <tr><th scope='row'>Organism</th><td>{{organism}}</td></tr>
+                        <tr><th scope='row'>Reference Database</th><td>{{ref}}</td></tr>
+                        <tr><th scope='row'>Report Generation Date</th><td>{{report_time}}</td></tr>
+
+                    </table>
+            </article>
+            <article class="result-content">
+                <strong><a id='method' name='method'>Method</a></strong>
+                    <p>
+                        Sequencing reads were trimmed to remove sequencing adaptors and low quality bases. And subsequently aligned
+                        to the annotated reference genome using aligner STAR [1]. Quantification of expression for each gene is calculated
+                        by RSEM[2], which produce both Transcripts Per Million reads (TPM), and expected read count. The expected read counts
+                        are used for differential gene expression analysis using EBSeq [3]
+                     </p>
+                    <footer>[1] Dobin A <i>et al</i> (2013) STAR: ultrafast universal RNA-seq aligner. Bioinformatics 29:15-21. </footer>
+                    <footer>[2] Li B, Dewey CN ( 2011) RSEM: accurate transcript quantification from RNA-Seq data with or without a reference genome.
+                        BMC Bioinformatics, 12:323
+                    </footer>
+                    <footer>[3] Leng N <i>et al</i> (2013) EBSeq: an empirical Bayes hierarchical model for inference in RNA-seq experiments.
+                        Bioinformatics 29:1035-1043.
+                    </footer>
+                    <img src="workflow.png" alt="[Workflow Chart]">
+            </article>
+            
+            <article class="result-content">
+                <strong><a id=data_summary name=data_summary>Data</a></strong>
+                {{trim_html}}
+            </article>
+            
+            <article class="result-content">
+                <strong><a id=BAM_summary name=BAM_summary>Alignments</a></strong>
+                {{alignment_html}}
+            </article>
+            
+            <article class="result-content">
+                <strong><a id=BAM_QC name=BAM_QC>mRNAseq QC</a></strong>
+                {{bam_qc_html}}
+            </article>
+            
+            <article class="result-content">
+                <strong><a id=DE_summary name=DE_summary>Differntial Expression</a></strong>
+                {{de_html}}
+            </article>
+            
+            <article class="result-content">
+                <strong><a id='software' name='software'>Software</a></strong></div>
+                <table class="brc">
+                <tr><th>Main Pipeline</th><td>v20150804 - Xiao-yu Liu</td></tr>
+                <tr><th>STAR</th><td>v2.4.2a</td></tr>
+                <tr><th>RSEM</th><td>v1.2.16</td></tr>
+                <tr><th>EBSeq</th><td>v1.1.5</td></tr>
+                </table>
+            </article>
+            
+        </main>
+
+    </div><!-- .content -->
+
+    <footer class="footer-area">
+        <p> Please acknowledge BRC in your manuscript or presentation for the data analysis work. If you think our
+    analysis contributes to your research intellectually please consider authorship for our bioinformaticians.</p>
+    </footer>
+
+    </div><!-- .outer-wrap -->
+
+    <script type="text/javascript" src="JS/libs/jquery-2.1.3.min.js"></script>
+
+</body>
+
+</html>

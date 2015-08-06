@@ -3,7 +3,13 @@
 rule ebseq:
     input: "expression/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}.counts.matrix"
     output: "tmp/ebseq/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}_w_FCstat.txt"
-    message: "\n    Differential expression analysis between treatment groups with ebseq"
+    message: """\n##### Differential expression analysis between treatment groups with ebseq
+    # rule:    ebseq
+    # INPUT:   {input}
+    # OUTPUT:  {output}
+    # PROGRAM: rsem-run-ebseq
+    """
+
     log: "shell_logs/{exp}_vs_{ctrl}.{feature}.ebseq.log"
     params:
         mem = "8G",
@@ -25,8 +31,12 @@ rule de_fdr:
     params:
         mem = "8G",
         pval = config["fdr"]
-    message:
-        "Filter for differentially expressed genes by FDR"
+    message:"""\n##### Filter for differentially expressed genes by FDR
+    # rule:    de_fdr
+    # INPUT:   {input}
+    # OUTPUT:  {output}
+    # PROGRAM: rsem-control-fdr
+    """
     shell: """
         # if [ -z "$SGE_O_WORKDIR" ]; then
         #     logging="2>&1 | tee {log}" # log the screen output if run on local machine
@@ -36,30 +46,45 @@ rule de_fdr:
         {RSEM}/rsem-control-fdr {input} {params.pval} {output} #$logging
         """
 
+formate_rsem_results = srcdir("format_rsem_results.py")
 rule de_table:
-    input: cfg_fn, "tmp/ebseq/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}{de, _|_DE_}w_FCstat.txt"
+    input: config_fn, "tmp/ebseq/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}{de, _|_DE_}w_FCstat.txt"
     output: "diff_expr/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}{de, _|_DE_}table.txt"
     log: "shell_logs/format_{exp}_vs_{ctrl}.{feature}.DE_table.log"
     params:
         mem = "8G"
-    #message: "\n    Make gene table from expression results (rsem) and fold change result (EBseq)"
+    message: """\n##### Make gene table from expression results (rsem) and fold change result (EBseq)
+    # rule:    de_table
+    # INPUT:   {input}
+    # OUTPUT:  {output}
+    # PROGRAM: EBseq/format_rsem_results.py
+    """
     shell: """
         # if [ -z "$SGE_O_WORKDIR" ]; then
         #     logging="2>&1 | tee {log}" # log the screen output if run on local machine
         # else
         #     logging=""  # SGE will log the screen output
         # fi
-        {_pipeline_dir}/format_rsem_results.py {input} > {output} #$logging
+        {formate_rsem_results} {input} > {output} #$logging
         """
+
+ebseq_report = srcdir("DE_ebseq_report.py")
 rule de_report:
     input:
     output: "diff_expr/de_report.html"
     log: "shell_logs/de_report.log"
+    message: """\n##### Create ebseq differential gene expression report
+    # rule:    de_report
+    # INPUT:   {input}
+    # OUTPUT:  {output}
+    # PROGRAM: EBseq/DE_ebseq_report.py
+    """
     params:
         mem='1G',
         o_prefix="diff_expr/de_report"
     shell: """
-        {_pipeline_dir}/DE_ebseq_report.py {cfg_fn} {params.o_prefix}
+        source activate py2;
+        {ebseq_report} {config_fn} {params.o_prefix}
         """
 
 
@@ -70,7 +95,12 @@ rule gene_matrix_all:
     output: "expression/all.{feature, [a-zA-Z]+}.counts.matrix"
     params:
         mem = "8G"
-    message: "\n    Merging reads count for genes / isoforms data matrix"
+    message: """\n##### Merging reads count for genes / isoforms data matrix
+    # rule:    gene_matrix_all
+    # INPUT:   {input}
+    # OUTPUT:  {output}
+    # PROGRAM: EBseq/DE_ebseq_report.py
+    """
     run:
         header_str = "\t".join([""] + [ s for trt in sorted(config["treatments"].keys()) for s in config["treatments"][trt] ])
         shell("{RSEM}/rsem-generate-data-matrix {input} > {output}")
@@ -81,7 +111,12 @@ rule ebseq_all:
     output: "expression/all.{feature, [a-zA-Z]+}_w_FCstat.txt"
     params:
         conditions=','.join(map(str, (map(len, config["treatments"].values()))))
-    message: "\n    Differential expression analysis among all treatment groups with ebseq"
+    message: """\n##### Differential expression analysis among all treatment groups with ebseq
+    # rule:    ebseq_all
+    # INPUT:   {input}
+    # OUTPUT:  {output}
+    # PROGRAM: rsem-run-ebseq
+    """
     shell: "{RSEM}/rsem-run-ebseq {input} {params.conditions} {output}"    
 
 rule de_fdr_all:
@@ -89,11 +124,15 @@ rule de_fdr_all:
     output: "expression/all.{feature, [a-zA-Z]+}_DE_w_FCstat.txt"
     params: 
         pval = config["fdr"]
-    message:
-            "\nFilter for differentially expressed genes by FDR"
+    message: """\n##### Filter for differentially expressed genes by FDR
+    # rule:    de_fdr_all
+    # INPUT:   {input}
+    # OUTPUT:  {output}
+    # PROGRAM: rsem-control-fdr
+    """
     shell: "{RSEM}/rsem-control-fdr {input} {params.pval} {output}"
 
 rule expression_table_all:
-    input: cfg_fn, "expression/all.{feature, [a-zA-Z]+}{de, _|_DE_}w_FCstat.txt"
+    input: config_fn, "expression/all.{feature, [a-zA-Z]+}{de, _|_DE_}w_FCstat.txt"
     output: "diff_expr/all.{feature, [a-zA-Z]+}{de, _|_DE_}table.txt"
-    shell: "{_pipeline_dir}/format_rsem_results.py {input} > {output}"
+    shell: "{format_rsem_results} {input} > {output}"

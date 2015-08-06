@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Expression Estimation{% endblock %}
+<section id="main">
+    FPKM, TPM, Counts
+ Summary
+
+Aim: This section allows the users to download the FPKM of genes and transcripts inferred by Tophat and Cufflinks [1].
+Methods: Genome references and index files were downloaded from Tophat website. The most recent build, NCBI build37.2, was used for human/mouse. For each sample, FASTQ files from multiple sub-runs are combined and aligned with Tophat. Expression levels are quantified through FPKM (Fragments Per Kilobase of transcript per Million mapped reads).
+
+ FPKM of protein-coding genes for each sample
+
+Methods: FPKM of each sample for all validated protein-coding genes. NCBI encodes all isoforms according to their evidence of presence. The protein-coding genes are those that have at least one isoform labeled with ‘NM’.
+
+Genes: 20179, Samples 32.
+
+</section>

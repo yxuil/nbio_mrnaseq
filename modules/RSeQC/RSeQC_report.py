@@ -24,7 +24,7 @@ def qc_alignment(samples, output):
     for sample in samples:
         sample_graphs = graphs.map(lambda x: x.format(sample))
         qc_table[sample]= sample_graphs
-        sample_graph_links = sample_graphs.apply(lambda x: '<a href="{s}"><img src="{s}"]" alt="{s}" width="160" hight="40">'.format(s=x))
+        sample_graph_links = sample_graphs.apply(lambda x: '<a href="{s}"><img src="{s}"]" alt="N.A." width="160" hight="40">'.format(s=x))
         qc_html[sample] = sample_graph_links
 
 
