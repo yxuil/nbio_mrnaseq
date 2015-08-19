@@ -3,7 +3,8 @@
     "workdir": "/mnt/grl/brc/data/levine_jon/rt315_marmoset_diet_hormone/star_test2/",
     "ref_base": "/mnt/grl/brc/data/levine_jon/rt315_marmoset_diet_hormone/ENS_C_jacchus3.2.1.78/",
     "data_dir": "/mnt/grl/brc/data/levine_jon/rt315_marmoset_diet_hormone/fastq/",
-    "comparisons": ["HF_v - LF_v", "HF_es - LF_es", "HF_es - HF_v ", "LF_es - LF_v"],
+    "comparisons": ["HF_v : LF_v", "HF_es : LF_es", "HF_es : HF_v ", "LF_es : LF_v"],
+    "paired": "yes"
     "delivery": "/mnt/grl/agar/users/Levine/projects/rt315_marmoset_diet_hormone/20150120",
     "align_exe": "STAR",
     "DE_exe": "EDGER",

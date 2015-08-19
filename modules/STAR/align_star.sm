@@ -1,49 +1,25 @@
-# STAR_IDX = [os.path.join(config['ref_base'], "STARIndex/{}").format(f) for f in "chrLength.txt chrNameLength.txt chrName.txt chrStart.txt Genome genomeParameters.txt SA SAindex".split()]
-#
-# rule align_with_star:
-#     input:
-#         ref = STAR_IDX,
-#         reads = lambda wc: ["trimmed_fq/{}_R1.fq.gz".format(wc.sample), "trimmed_fq/{}_R2.fq.gz".format(wc.sample)] if is_paired(wc.sample) else "trimmed_fq/{}.fq.gz".format(wc.sample)
-#     output:
-#         genome_alignment="tmp/star_alignment/{sample}_Aligned.sortedByCoord.out.bam",
-#         transcriptome_alignment = "tmp/star_alignment/{sample}_Aligned.toTranscriptome.out.bam",
-#         log="logs/star_align_{sample}.final.log"
-#     params:
-#         mem = "32G", # for SGE submission option: -l vf={params.mem}
-#         idx_dir = os.path.join(config['ref_base'], "STARIndex"),
-#         o_prefix = "tmp/star_alignment/{sample}_",
-#         reads_lst = lambda wc: "trimmed_fq/{s}_R1.fq.gz trimmed_fq/{s}_R2.fq.gz".format(s = wc.sample) if is_paired(wc.sample) else "trimmed_fq/{}.fq.gz".format(wc.sample)
-#     log: "shell_logs/star_align_{sample}.log"
-#     threads: 8
-#
-#     message: "\n#    Align sample {wildcards.sample} to reference genome"
-#
-#     shell:"""
-#         # if [ -z "$SGE_O_WORKDIR" ]; then
-#         #     logging="2>&1 | tee {log}" # shell logging
-#         # else
-#         #     logging=""  # SGE logging
-#         # fi
-#         {STAR} --runThreadN {threads} --genomeDir {params.idx_dir} --readFilesIn {params.reads_lst}  \
-#             --genomeLoad LoadAndKeep
-#             --readFilesCommand zcat --outFileNamePrefix {params.o_prefix} --outSAMattributes NH HI AS NM MD XS \
-#             --outSAMunmapped Within --outSAMtype BAM SortedByCoordinate --quantMode TranscriptomeSAM \
-#             --outFilterMultimapNmax 50 #$logging
-#         mv {params.o_prefix}Log.final.out {output.log}
-#         """
 
 read_length=100 # TODO add parameter in the config, then use int(config["read_length"]) - 1
-STAR_IDX_DIR = "ref/STARIndex"
-STAR_IDX = [STAR_IDX_DIR + "/{}".format(f) for f in \
-                  "chrLength.txt chrNameLength.txt chrName.txt chrStart.txt Genome genomeParameters.txt SA SAindex".split()]
+
+STAR_IDX_FILES = "chrLength.txt chrNameLength.txt chrName.txt chrStart.txt Genome genomeParameters.txt SA SAindex".split()
+STAR_IDX_DIR   = os.path.join(ref_base, "STARIndex")
+STAR_IDX = [os.path.join(ref_base, "STARIndex", fn) for fn in STAR_IDX_FILES]
+
+# point STAR_IDX to project folder if star reference is incomplete
+for fn in STAR_IDX_FILES:
+    if not os.path.isfile(os.path.join(fn)):
+        STAR_IDX = [os.path.join('ref', "STARIndex", fn) for fn in STAR_IDX_FILES]
+        STAR_IDX_DIR = os.path.join("ref", "STARIndex")
+        break 
+
 rule star_index:
     input:
         fa = ref_fa, #os.path.join(ref_base, "genome.fa"),
         gtf= ref_gtf #os.path.join(ref_base, "annotation", "genes.gtf")
     output: STAR_IDX
-    log: "shell_logs/star_index_pass1.log"
+    log: "tmp/shell_log/star_index_pass1.log"
     params:
-        mem="30G",
+        mem="34G",
     threads: 8
     message: """\n##### Create STAR reference genome index with known gene annotation
     # rule: star_index
@@ -51,20 +27,23 @@ rule star_index:
     # OUTPUT:  {output}
     # PROGRAM: STAR genomeGenerate
     """
-    shell: " {STAR} --runThreadN {threads} --runMode genomeGenerate --genomeDir {STAR_IDX_DIR} " \
-           "--genomeFastaFiles {input.fa} --sjdbGTFfile {input.gtf} --sjdbOverhang {read_length}"
+    shell: "cd {STAR_IDX_DIR};"
+           "{STAR} --runThreadN {threads} --runMode genomeGenerate --genomeDir {STAR_IDX_DIR} " \
+           "--genomeFastaFiles {input.fa} --sjdbGTFfile {input.gtf} --sjdbOverhang {read_length}; "\
+           "cd -"
 
 rule star_align_pass1:
     input:
         ref = STAR_IDX,
-        reads = lambda wc: ["trimmed_fq/{}_R1.fq.gz".format(wc.sample), "trimmed_fq/{}_R2.fq.gz".format(wc.sample)] if is_paired(wc.sample) else "trimmed_fq/{}.fq.gz".format(wc.sample)
+        reads = lambda wc: ["trimmed_fq/{}_R1.fq.gz".format(wc.sample), "trimmed_fq/{}_R2.fq.gz".format(wc.sample)] \
+                                if isPairedReads(wc.sample) else "trimmed_fq/{}.fq.gz".format(wc.sample)
     output:
         junction = "tmp/star_alignment_pass1/{sample}_SJ.out.tab"
     params:
         mem = "32G", # for SGE submission option: -l vf={params.mem}
         o_prefix = "tmp/star_alignment_pass1/{sample}_",
-        reads_lst = lambda wc: "trimmed_fq/{s}_R1.fq.gz trimmed_fq/{s}_R2.fq.gz".format(s = wc.sample) if is_paired(wc.sample) else "trimmed_fq/{}.fq.gz".format(wc.sample)
-    log: "shell_logs/star_align_{sample}.log"
+        reads_lst = lambda wc: "trimmed_fq/{s}_R1.fq.gz trimmed_fq/{s}_R2.fq.gz".format(s = wc.sample) if isPairedReads(wc.sample) else "trimmed_fq/{}.fq.gz".format(wc.sample)
+    log: "tmp/shell_log/star_align_{sample}.log"
     threads: 8
 
     message: """\n##### Align PASS1 - align sample {wildcards.sample} to reference genome to generate novel junction list
@@ -87,7 +66,7 @@ rule merge_star_junction:
     output: "tmp/star_alignment_pass1/master_SJ.out.tab"
     params:
         mem = "2G"
-    log: "shell_logs/star_junc_merge.log"
+    log: "tmp/shell_log/star_junc_merge.log"
     message: """\n##### merge output junction files from individual STAR alignment
     # rule: merge_star_junction
     # INPUT:   {input}
@@ -100,17 +79,18 @@ rule merge_star_junction:
 rule star_align_pass2:
     input:
         ref = STAR_IDX,
-        reads = lambda wc: ["trimmed_fq/{}_R1.fq.gz".format(wc.sample), "trimmed_fq/{}_R2.fq.gz".format(wc.sample)] if is_paired(wc.sample) else "trimmed_fq/{}.fq.gz".format(wc.sample),
+        reads = lambda wc: ["trimmed_fq/{}_R1.fq.gz".format(wc.sample), "trimmed_fq/{}_R2.fq.gz".format(wc.sample)] if isPairedReads(wc.sample) else "trimmed_fq/{}.fq.gz".format(wc.sample),
         junc_file = rules.merge_star_junction.output
     output:
         genome_alignment="tmp/star_alignment_pass2/{sample}_Aligned.sortedByCoord.out.bam",
         transcriptome_alignment = "tmp/star_alignment_pass2/{sample}_Aligned.toTranscriptome.out.bam",
-        log="logs/star_align_{sample}.final.log"
+        reads_count="tmp/star_alignment_pass2/{sample}_ReadsPerGene.out.tab",
+        log="tmp/pipeline_log/star_align_{sample}.final.log"
     params:
         mem = "32G", # for SGE submission option: -l vf={params.mem}
         o_prefix = "tmp/star_alignment_pass2/{sample}_",
-        reads_lst = lambda wc: "trimmed_fq/{s}_R1.fq.gz trimmed_fq/{s}_R2.fq.gz".format(s = wc.sample) if is_paired(wc.sample) else "trimmed_fq/{}.fq.gz".format(wc.sample)
-    log: "shell_logs/star_align_{sample}.log"
+        reads_lst = lambda wc: "trimmed_fq/{s}_R1.fq.gz trimmed_fq/{s}_R2.fq.gz".format(s = wc.sample) if isPairedReads(wc.sample) else "trimmed_fq/{}.fq.gz".format(wc.sample)
+    log: "tmp/shell_log/star_align_{sample}.log"
     threads: 8
 
     message: """\n#####  STAR pass2 align sample {wildcards.sample} to reference genome with newly found multi-sample junctions
@@ -139,7 +119,7 @@ rule mv_alignment:
             "tmp/star_alignment_pass2/{sample}_Aligned.toTranscriptome.out.bam"
     output: "alignments/{sample}_aligned_genome.bam",
             "alignments/{sample}_aligned_transcriptome.bam"
-    log: "shell_logs/star_align_{sample}.log"
+    log: "tmp/shell_log/star_align_{sample}.log"
     params:
         mem = "2G"
     message: """\n#####  Move alignment files to destination
@@ -151,12 +131,36 @@ rule mv_alignment:
     shell:  "mv  {input[0]} {output[0]};"
             "mv  {input[1]} {output[1]}"
 
+rule star_readcount:
+    input: expand("tmp/star_alignment_pass2/{sample}_ReadsPerGene.out.tab", sample = config["treatments"][exp] + config["treatments"][ctrl])
+    output: "expression/{exp}_vs_{ctrl}.gene.readcount.txt"
+    log: "tmp/shell_log/{exp}_vs_{ctrl}.gene.readcount.star.log"
+    params:
+        mem = "4G"
+    message: """\n#####  merge STAR's ReadsPerGene table to expression folder
+    # rule: star_readcount
+    # INPUT:   {input}
+    # OUTPUT:  {output}
+    # PROGRAM: pandas
+    """
+    run:
+        import pandas as pd
+        table_out = pd.DataFrame()
+        for fn in input:
+            sample_name = os.path.basename(fn).replace("_ReadsPerGene.out.tab", "")
+            table_in = pd.read_table(fn, index_col=0, header = None, skiprows=skip)
+
+            table_out[sample_name] = table_in[1]
+        table_out.index.name = "gene"
+        table_out.to_csv(output, sep = '\t')
+
+
 star_report = srcdir("align_star_report.py")
 rule alignment_stat:
-    input: expand("logs/star_align_{sample}.final.log", sample=SAMPLES)
+    input: expand("tmp/pipeline_log/star_align_{sample}.final.log", sample=SAMPLES)
     output: "alignments/alignment_stat.html"
     params: mem='1G', o_prefix="alignments/alignment_stat"
-    log: "shell_logs/trim_report.log"
+    log: "tmp/shell_log/trim_report.log"
     message: """\n#####  report STAR alignment stat
     # rule: alignment_stat
     # INPUT:   {input}

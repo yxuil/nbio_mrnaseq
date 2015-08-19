@@ -1,16 +1,46 @@
 {% extends "base.html" %}
-{% block title %}Expression Estimation{% endblock %}
-<section id="main">
-    FPKM, TPM, Counts
- Summary
+{% block title %}Expression{% endblock %}
+{% block page %}Expression estimation{% endblock %}
+{% block mainarea %}
+<div id="description">
+    <p>
+    The FPKM, TPM, and read counts of genes and transcripts inferred by RSEM [1].</p>
+    <p>
+    Methods: RSEM uses input transcriptome alignment by STAR and estimate expression values using the alignments.
+    Expression levels are quantified through FPKM (Fragments Per Kilobase of transcript per Million mapped reads),
+    TPM, and read counts.
+    </p>
+</div>
+<hr>
+    {{ expr_html }}
+<hr>
 
-Aim: This section allows the users to download the FPKM of genes and transcripts inferred by Tophat and Cufflinks [1].
-Methods: Genome references and index files were downloaded from Tophat website. The most recent build, NCBI build37.2, was used for human/mouse. For each sample, FASTQ files from multiple sub-runs are combined and aligned with Tophat. Expression levels are quantified through FPKM (Fragments Per Kilobase of transcript per Million mapped reads).
+<div>
+    <p>
+    'TPM' stands for Transcripts Per Million. It is a relative measure of transcript abundance. The sum of all
+    transcripts' TPM is 1 million. 'FPKM' stands for Fragments Per Kilobase of transcript per Million mapped
+    reads. It is another relative measure of transcript abundance. If we define l_bar be the mean transcript
+    length in a sample, which can be calculated as
+    </p>
+    l_bar = \sum_i TPM_i / 10^6 * effective_length_i (i goes through every transcript),
 
- FPKM of protein-coding genes for each sample
+        <math style="font-family:'Times New Roman'" xmlns="http://www.w3.org/1998/Math/MathML"><mover><mi>l</mi><mo>&#175;</mo></mover><mo>=</mo><msubsup><mo>&#8721;</mo><mi>i</mi><mi>n</mi></msubsup><mfrac><mrow><mi>T</mi><mi>P</mi><msub><mi>M</mi><mi>i</mi></msub></mrow><mrow><mi>l</mi><mi>e</mi><mi>n</mi><mi>g</mi><mi>t</mi><msub><mi>h</mi><mi>i</mi></msub><mo>&#215;</mo><msup><mn>10</mn><mn>6</mn></msup></mrow></mfrac></math>
+    <p>
+    the following equation is hold:
+    </p>
+    FPKM_i = 10^3 / l_bar * TPM_i.
+        <math style="font-family:'Times New Roman'" xmlns="http://www.w3.org/1998/Math/MathML"><mi>F</mi><mi>P</mi><mi>K</mi><msub><mi>M</mi><mi>i</mi></msub><mo>=</mo><mi>T</mi><mi>P</mi><msub><mi>M</mi><mi>i</mi></msub><mo>&#215;</mo><mfrac><msup><mn>10</mn><mn>3</mn></msup><mover><mi>l</mi><mo>&#175;</mo></mover></mfrac></math>
 
-Methods: FPKM of each sample for all validated protein-coding genes. NCBI encodes all isoforms according to their evidence of presence. The protein-coding genes are those that have at least one isoform labeled with ‘NM’.
+    <p>
+    'count' is the sum of the posterior probability of each read comes from this transcript over all reads.
+    Because 1) each read aligning to this transcript has a probability of being generated from background noise;
+    2) RSEM may filter some alignable low quality reads, the sum of expected counts for all transcript are generally
+    less than the total number of reads aligned.
+    </p>
+    <p>
+    We can see that the sum of FPKM is not a constant across samples.
+    </p>
+</div>
+<p>[1]: Li B, Dewey CN. RSEM:accurate transcript quantification from RNA-Seq data with or without a reference genome. BMC Bioinformatics. 2011; 12:323 </p>
 
-Genes: 20179, Samples 32.
-
-</section>
+{% endblock %}

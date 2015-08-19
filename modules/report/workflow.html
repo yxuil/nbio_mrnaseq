@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}workflow{% endblock %}
+{% block page %}Workflow{% endblock %}
+{% block mainarea %}
+            <article class="result-content">
+                <strong><a id='workflow' name='workflow'>Workflow</a></strong>
+                <p>
+                    Sequencing reads were trimmed to remove sequencing adaptors and low quality bases. And subsequently aligned
+                    to the annotated reference genome using aligner STAR [1]. Quantification of expression for each gene is calculated
+                    by RSEM[2], which produce both Transcripts Per Million reads (TPM), and expected read count. The expected read counts
+                    are used for differential gene expression analysis using EBSeq [3]
+                </p>
+                <img src="workflow.png" alt="[Workflow Chart]">
+            </article>
+                <footer>[1] Dobin A <i>et al</i> (2013) STAR: ultrafast universal RNA-seq aligner. Bioinformatics 29:15-21.
+                </footer>
+                <footer>[2] Li B, Dewey CN ( 2011) RSEM: accurate transcript quantification from RNA-Seq data with or without a reference genome.
+                    BMC Bioinformatics, 12:323
+                </footer>
+                <footer>[3] Leng N <i>et al</i> (2013) EBSeq: an empirical Bayes hierarchical model for inference in RNA-seq experiments.
+                    Bioinformatics 29:1035-1043.
+                </footer>
+{% endblock %}

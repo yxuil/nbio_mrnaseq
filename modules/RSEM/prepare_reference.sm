@@ -6,7 +6,7 @@
 #     output:
 #         fa = os.path.join(ref_base, "genome.fa"),
 #         gtf= os.path.join(ref_base, "annotation", "genes.gtf")
-#     log: "shell_logs/reference_index.log"
+#     log: "tmp/shell_log/reference_index.log"
 #     message:"""
 #         ##
 #         #  Set up reference directory

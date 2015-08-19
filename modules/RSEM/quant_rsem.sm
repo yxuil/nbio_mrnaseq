@@ -4,20 +4,18 @@ expression file (temporary); and individual expression are aggregated to feature
 make_exp_matrix)
 
 input: alignments/sample_aligned_transcriptome.bam    <- sample is enumerated through those defined in config
-output: expression/{exp}_vs_{ctrl}.{feature, genes|isoforms}.counts.matrix
+output: expression/{exp}_vs_{ctrl}.{feature, genes|isoforms}.readcounts.txt
 '''
 
-##### RSEM quantification #####
-
-## rsem output files are:
-## <sample>.genes.results
-## <sample>.isoforms.results
-## <sample>..stat
-## <sample>..transcript.bam
-## <sample>.transcript.sorted.bam
-## <sample>.transcript.sorted.bam.bai
-RSEM_IDX= [os.path.join("ref",  "RSEMIndex", "genome.{i}.ebwt").format(i=i) for i in range(1,5)]\
-          +  [os.path.join("ref",  "RSEMIndex","genome.rev.{i}.ebwt").format(i=i) for i in [1,2]]
+RSEM_IDX_FILES = ["genome.{i}.ebwt".format(i=i) for i in range(1,5)] + ["genome.rev.{i}.ebwt".format(i=i) for i in [1,2]]
+RSEM_IDX = [os.path.join(ref_base, "RSEMIndex", fn) for fn in RSEM_IDX_FILES]
+RSEM_IDX_DIR = os.path.join(ref_base, "RSEMIndex")
+# point RSEM_IDX to project folder if star reference is incomplete
+for fn in RSEM_IDX:
+    if not os.path.isfile(fn):
+        RSEM_IDX = [os.path.join("ref", "RSEMIndex", fn) for fn in RSEM_IDX_FILES]
+        RSEM_IDX_DIR = os.path.join("ref", "RSEMIndex")
+        break
 
 ##### INDEX #####
 
@@ -78,10 +76,10 @@ rule rsem_index:
         fa = ref_fa, #os.path.join(ref_base, "genome.fa"),
         gtf= ref_gtf #"tmp/genes_cleaned.gtf"
     output: RSEM_IDX
-    log: "shell_logs/reference_index.log"
+    log: "tmp/shell_log/reference_index.log"
     params:
         mem = "2G",
-        ref = os.path.join(ref_base, "RSEMIndex","genome")
+        ref = os.path.join(RSEM_IDX_DIR, "genome")
     message: """\n##### Make RSEM index with reference sequence and gene annotation
     # rule: rsem_index
     # INPUT:   {input}
@@ -100,33 +98,28 @@ rule rsem_bam:
         bam  = "alignments/{sample}_aligned_transcriptome.bam"
     output:"tmp/rsem_estimate/{sample}.genes.results",
            "tmp/rsem_estimate/{sample}.isoforms.results"
-    log: "shell_logs/rsem_estimate_{sample}.log"
+    log: "tmp/shell_log/rsem_estimate_{sample}.log"
     threads: 8
     params:
         mem = "10G",
-        ref= "ref/RSEMIndex/genome",
-        tmp= "tmp/rsem_estimate/",
-        pair_option=lambda wildcards: "--paired-end" if is_paired(wildcards.sample) else ""
-    message: """\n##### RSEM estimates expression from sample {wildcards.sample} aligned BAM file
-    # rule: rsem_bam
-    # INPUT:   {input}
-    # OUTPUT:  {output}
-    # PROGRAM: rsem-calculate-expression
-    """
+        ref= ref_base + "/RSEMIndex/genome",
+        prefix= "tmp/rsem_estimate/{sample}",
+        pair_option=lambda wildcards: "--paired-end" if isPairedReads(wildcards.sample) else ""
+    # message: """\n##### RSEM estimates expression from sample {wildcards.sample} aligned BAM file
+    # # rule: rsem_bam
+    # # INPUT:   {input}
+    # # OUTPUT:  {output}
+    # # PROGRAM: rsem-calculate-expression
+    # """
     shell: """
-            # if [ -z "$SGE_O_WORKDIR" ]; then
-            #     logging="2>&1 | tee {log}" # shell logging
-            # else
-            #     logging=""  # SGE logging
-            # fi
-            {RSEM}/rsem-calculate-expression {params.pair_option} --bam {input.bam} -p {threads} {params.ref} {params.tmp}/{wildcards.sample} #$logging
+            {RSEM}/rsem-calculate-expression {params.pair_option} --bam {input.bam} -p {threads} {params.ref} {params.prefix} #$logging
             """
 
 rule rsem_exp_matrix:
     input: lambda wc: ["expression/{s}_{f}_table.txt".format(s=sample, f=wc.feature) for sample in \
                        config["treatments"][wc.exp] + config["treatments"][wc.ctrl] ]
-    output: "expression/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}.counts.matrix"
-    log: "shell_logs/{exp}_vs_{ctrl}.{feature}_cntMat.log"
+    output: "expression/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}.readcounts.txt"
+    log: "tmp/shell_log/{exp}_vs_{ctrl}.{feature}_cntMat.log"
     params:
         mem = "1G",
         header_str = lambda wildcards: "\t".join([""] + config["treatments"][wildcards.exp] + config["treatments"][wildcards.ctrl])
@@ -146,7 +139,7 @@ rule mv_expression:
            "tmp/rsem_estimate/{sample}.isoforms.results"
     output: "expression/{sample}_genes_table.txt",
             "expression/{sample}_isoforms_table.txt"
-    log: "shell_logs/rsem_estimate_{sample}.log"
+    log: "tmp/shell_log/rsem_estimate_{sample}.log"
     params:
         mem = "1G"
     message: """\n##### move expression estimation to destination
@@ -159,18 +152,7 @@ rule mv_expression:
               "mv {input[1]}  {output[1]}"
 
 
-# rule count_table:
-#     input: lambda wc: [ "expression/{sample}_{feature}_table.txt".format(sample=s, feature=wc.feature) for s in SAMPLES ]
-#     output: "expression/{feature}_count_table.txt"
-#     log: "shell_logs/merge_rsem_{feature}_expression.log"
-#     message: "#   merge all sample {wildcards.feature} expression to {output}"
-#     params:
-#         mem = "1G",
-#         header_str = "\t".join([""] + SAMPLES)
-#     shell: """
-#         {RSEM}/rsem-generate-data-matrix {input} > {output}
-#         sed -i '1s/.*/{header_str}/' {output}
-#         """
+
 
 rsem_write_exp = srcdir("quant_rsem_write_expTable.py")
 rule expression_table:
@@ -178,7 +160,7 @@ rule expression_table:
     output: "expression/{feature}_count_table.txt",
             "expression/{feature}_TPM_table.txt",
             "expression/{feature}_FPKM_table.txt"
-    log: "shell_logs/merge_rsem_{feature}_expression.log"
+    log: "tmp/shell_log/merge_rsem_{feature}_expression.log"
     message: """\n##### merge all sample {wildcards.feature} expression to count, TPM, and FPKM tables
     # rule: expression_table
     # INPUT:   {input}
@@ -191,6 +173,44 @@ rule expression_table:
         {rsem_write_exp} {config_fn} {wildcards.feature}
         """
 
+rule report_rsem_expression:
+    input: expand("expression/{feature}_{measure}_table.txt", feature = config["features"], measure = ["FPKM", "TPM", "count"])
+    output: "expression/exp_report.html"
+    log: "tmp/shell_log/exp_report.log"
+    # message: "#   merge all sample {wildcards.feature} expression to {output}"
+    params:
+        mem = "1G"
+    run:
+        import pandas as pd
+        from jinja2 import Template
+        labels = list(map(lambda x: " ".join(x.split("/")[1].split("_")[:2]), input))
+        grid_js, gt_divs = table_to_html(list(input))
+
+        html_template = Template("""
+        <div id = "container">
+            {% for lbl in labels %}
+            <input id="tab-{{ loop.index }}" type="radio" name="tab-group"{% if loop.index == 1 %} checked="checked"{% endif %}>
+            <label for="tab-{{ loop.index }}">{{ lbl }}</label>
+            {% endfor %}
+
+            {% for gt_tbl in gt_divs %}
+            <div class="genetable" id="content-{{ loop.index }}">
+                {{ gt_tbl[21:-7] }}
+            </div>
+            {% endfor %}
+        </div>
+
+        <link rel="stylesheet" href="http://cdn.pydata.org/bokeh/release/bokeh-0.9.2.min.css" type="text/css" />
+        <script type="text/javascript" src="http://cdn.pydata.org/bokeh/release/bokeh-0.9.2.min.js"></script>
+        {{ grid_js }}
+        """)
+        # make the first table checked
+        checked =[' checked="checked"'] + ['']*(len(gt_divs)-1)
+        html_str = html_template.render(labels=labels, gt_divs = gt_divs, grid_js=grid_js)
+        with open(str(output), 'w') as f_out:
+            f_out.write(html_str)
+
+
 #--bam [--paired-end] input reference_name sample_name
 
 rule rsem_fastq:
@@ -202,7 +222,7 @@ rule rsem_fastq:
             "rsem_estimate/{sample}.transcript.sorted.bam",
             "rsem_estimate/{sample}.genome.sorted.bam"
     threads: 8
-    log: "shell_logs/rsem_calc_expr_{wc.sample}.log"
+    log: "tmp/shell_log/rsem_calc_expr_{wc.sample}.log"
     params:
         mem = "8G",
         ref= ref_base + "./RSEMIndex/genome"
@@ -215,7 +235,7 @@ rule rsem_fastq:
     run:
         read1_lst = ",".join(input.r1)
         pair_option, read2_lst = ("--paired-end", ",".join(input.r1).replace("R1", "R2") ) \
-                                  if is_paired(wildcards.sample) else ("", "")
+                                  if isPairedReads(wildcards.sample) else ("", "")
         shell("{RSEM}/rsem-calculate-expression -p {threads} --output-genome-bam --bowtie-path {BOWTIE} "\
               "{pair_option} {read1_lst} {read2_lst} {params.ref} rsem_estimate/{wildcards.sample};"
               " mv ")

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}project summary{% endblock %}
+{% block page %}project summary{% endblock %}
+{% block mainarea %}
+            <article class="result-content">
+                <strong><a id=summary name=summary>Summary</a></strong>
+                    <table class="brc">
+                        <tr><th scope='row'>PI Name</th><td style="white-space:pre-wrap">{{PIname}}</td></tr>
+                        <tr><th scope='row'>Project Description</th><td style="white-space:pre-wrap">{{description}}</td></tr>
+                        <tr><th scope='row'>Sample</th><td style="white-space:pre-wrap">{{sample_num}}</td></tr>
+                        <tr><th scope='row'>Organism</th><td>{{organism}}</td></tr>
+                        <tr><th scope='row'>Reference Database</th><td>{{ref}}</td></tr>
+                        <tr><th scope='row'>Report Generation Date</th><td>{{report_time}}</td></tr>
+
+                    </table>
+            </article>
+{% endblock %}

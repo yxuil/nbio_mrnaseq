@@ -4,7 +4,7 @@ rule featurecounts:
     ouptut:
     params:
         mem='8G',
-        log="shell_log/fc_{sample}.log"
+        log="tmp/shell_log/fc_{sample}.log"
     version: FEATURECOUNTS_VERSION
     mesage:"""#### Count reads for feature with FeatureCounts.
     # rule: featurecounts

@@ -1,0 +1,43 @@
+rule goseq:
+    input: "diff_expr/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}.diffexpr.txt"
+    output: "tmp/goseq/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}.diffexpr.txt"
+    message: """\n##### Differential expression analysis between treatment groups with ebseq
+    # rule:    edger
+    # INPUT:   {input}
+    # OUTPUT:  {output}
+    # PROGRAM: goseq_R
+    """
+
+    log: "tmp/shell_log/{exp}_vs_{ctrl}.{feature}.goseq.log"
+    params:
+        mem = "8G",
+        prefix = "tmp/goseq/{exp}_vs_{ctrl}.{feature}",
+        # treatments in form of c("trt_rep1", "trt_rep2", "trt_rep3", "ctrl_rep1", "ctrl_rep2", "ctrl_rep3")
+        treatments = lambda wc: 'c("{}")'.format('", "'.join([wc.exp] * len(config["treatments"][wc.exp]) +
+                                                             [wc.ctrl] * len(config["treatments"][wc.ctrl]))),
+        # if paired make paired information in form of c("0", "1", "2", "0", "1", "2")
+        pairs = lambda wc: 'c("{}")'.format('", "'.join(map(str, list(range(len(config["treatments"][wc.exp]))) +
+                                               list(range(len(config["treatments"][wc.ctrl]))) ) ) ) \
+                           if paired["{}:{}".format(wc.exp, wc.ctrl)] else "c()"
+        # conditions=lambda wc: ','.join(map(str, (map(len, [config["treatments"][wc.exp], config["treatments"][wc.ctrl]]))))
+    run:
+       # try:
+        #     import rpy2
+        #     print("python version is", sys.version_info)
+        #     print("rpy2 version is", rpy2.__version__)
+        # except Exception as e:
+        #     print("no rpy2", e)
+        #
+        # R()
+        rscript = edgeR.format(INPUT=input,
+                               prefix=params.prefix,
+                               treatments=params.treatments ,
+                               pairs = params.pairs)
+        with open(params.prefix + "_edger.R", 'w') as rscript_out:
+            rscript_out.write(rscript)
+        shell("Rscript {params.prefix}_edger.R")
+
+
+rule run_goseq:
+    input: ["tmp/edger/{exp}_vs_{ctrl}.{feature}.diffexpr.txt".format(exp=exp,ctrl=ctrl,feature=feature)  \
+                    for exp, ctrl in zip(expGrp_lst, ctrlGrp_lst)  for feature in ['genes','isoforms'] ]

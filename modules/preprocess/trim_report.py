@@ -17,7 +17,7 @@ def trim_report(samples, output):
     sample_summary = pd.DataFrame()
     for sample in samples:
         # trim stat
-        log = 'logs/{}_trim.log'.format(sample)
+        log = 'tmp/pipeline_log/{}_trim.log'.format(sample)
 
         # detect if it is single end or paired end trimming in the log
         with open(log) as f_in:

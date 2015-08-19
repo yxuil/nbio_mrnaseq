@@ -1,8 +1,9 @@
 #!/usr/bin/env python
+import imp
 
-from ..utilities import table_to_grid, table_to_html
+# from utilities.py import table_to_grid, table_to_html
 
-def ebseq_report(config, output):
+def edger_report(config, output):
     """
     :param config: run configuration file that contains group, sample information
     :param output: output prefix for saving file
@@ -15,13 +16,13 @@ def ebseq_report(config, output):
     file_list = []
     for cmp in config["comparisons"]:
         condition1, condition2 = map(lambda x: str(x).strip(), cmp.split(":")) # split cmp and strip whitespace
-        fn = "diff_expr/{}_vs_{}.genes_table.txt".format(condition1, condition2)
+        fn = "diff_expr/{}_vs_{}.genes.diffexpr.txt".format(condition1, condition2)
         file_list.append(fn)
         with open(fn) as f_in:
             line_count = sum(1 for _ in f_in)  # _ is a throwaway variable
         total_gene = line_count - 1            # remove the header line
 
-        fn = "diff_expr/{}_vs_{}.genes_DE_table.txt".format(condition1, condition2)
+        fn = "diff_expr/{}_vs_{}.genes.DE.txt".format(condition1, condition2)
         with open(fn) as f_in:
             line_count = sum(1 for _ in f_in)
         de_gene = line_count - 1
@@ -37,7 +38,7 @@ def ebseq_report(config, output):
     with open(output + ".html", 'w') as f_out:
         f_out.write(table_df.to_html(classes="brc", escape=False))
         for comp, gt_div in zip (config["comparisons"], gt_divs):
-            f_out.write("\n<div id="genetable">\n<p>Gene table for comparison between {} </p>\n{}\n</div>\n".format(comp, gt_div))
+            f_out.write('\n<div id="genetable">\n<p>Gene table for comparison between {} </p>\n{}\n</div>\n'.format(comp, gt_div))
 
         f_out.write(grid_js + '\n')
 
@@ -46,4 +47,4 @@ if __name__ == "__main__":
         print("USAGE: {} <run_config> <output_prefix>".format(sys.argv[0]))
         exit(-1)
     config = json.load(open(sys.argv[1]))
-    ebseq_report(config, sys.argv[2])
+    edger_report(config, sys.argv[2])

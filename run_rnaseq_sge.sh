@@ -42,7 +42,6 @@ if hash qsub 2>/dev/null; then  # check if qsub available
     jn=`date +%Y_%m_%d`
     config=$1
     shift              # get everything after the config file
-    #qsub -V -cwd -S /bin/bash -j y -o mRNAseq_run_$jn.log -q all.q \
     ${progPath}/run_rnaseq.sh $config -c "$qsub_default" --jn s.\{rulename\}.\{jobid\} -w 30 -j 20 $@
 else
     # qsub not available

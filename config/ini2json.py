@@ -3,9 +3,14 @@
 
 import json
 import sys
-from ConfigParser import ConfigParser
+import six
+if six.PY2:
+    from ConfigParser import ConfigParser
+elif six.PY3:
+    from configparser import ConfigParser
+
 from collections import OrderedDict
- 
+
 
 if __name__ == "__main__":
     cfg = ConfigParser(dict_type=OrderedDict)
@@ -29,4 +34,4 @@ if __name__ == "__main__":
                 config[key_name] = [x.strip().strip('"').strip("'") for x in value.split(',') if x]
                 if len(config[key_name]) == 1: config[key_name] = config[key_name][0]
                 elif len(config[key_name]) == 0: config[key_name] = ''
-    print json.dumps(config,indent=4)
+    print(json.dumps(config,indent=4))

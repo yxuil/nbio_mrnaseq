@@ -1,5 +1,12 @@
-import os
-ref_base = config.get('ref_base', "ref")
+
+import os, sys, json
+from bokeh.models import ColumnDataSource
+from bokeh.models.widgets import DataTable, TableColumn
+from bokeh.embed import components
+import bokeh
+import pandas as pd
+
+# ref_base = config.get('ref_base', "ref")
 
 class bcolors:
     HEADER = '\033[95m'
@@ -28,7 +35,7 @@ def dif(a, b):
         diff_a = [a[i] for i in diff_pos]
         diff_b = [b[i] for i in diff_pos]
     return diff_pos, diff_a, diff_b
-def is_paired(sample):
+def isPairedReads(sample):
     '''determine if a sample has paired sequencing
     NOTE: if the sample has mixed single end and paired end sequencing
     it will treated as single end only
@@ -49,11 +56,27 @@ def is_paired(sample):
             return False
     return  True
 
+# functions to create slickgrid html table from tab delimited table
+
+def table_to_html(table_fn, width = 980, height = 280):
+    if type(table_fn) is str:
+        table_fn = [table_fn]
+    grid = []
+    for fn in table_fn:
+        data = pd.read_table(fn)
+        data.index += 1
+        data.columns=["ID"] + list( data.columns[1:])
+        source = ColumnDataSource(data)  #.applymap(lambda x: round(x, 2)))
+        columns = [ TableColumn(field= a, title= a) for a in data.columns ]
+        data_table = DataTable(source=source, columns=columns, width=width, height=height)
+        grid.append(data_table)
+    script, divs = components(grid, None)
+    return(script, divs)
 
 rule index_aln_bam:
     input: "alignments/{sample}_aligned_{nome}.bam"
     output: "alignments/{sample}_aligned_{nome, genome|transcriptome}.bam.bai"
-    log: "shell_logs/index_{sample}_{nome}_bam.log"
+    log: "tmp/shell_log/index_{sample}_{nome}_bam.log"
     params:
         mem="2G"
     message: "#    indexing bam file {input}"

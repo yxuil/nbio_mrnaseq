@@ -48,6 +48,8 @@ if hash $snakemake_com 2>/dev/null; then
             # gather the rest of options
             shift
 
+            echo "Working in:" `pwd`
+
             # assign appropriate number of core/threads
             if [[ " $* " == *" -j "* ]]; then
                 # already set -j parameter

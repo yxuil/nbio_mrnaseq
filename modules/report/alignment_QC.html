@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Alignment QC{% endblock %}
+{% block page %}Alignment QC{% endblock %}
+{% block mainarea %}
+            <article class="result-content">
+                <strong><a id=BAM_QC name=BAM_QC>mRNAseq QC</a></strong>
+                <p></p>
+                {{bam_qc_html}}
+            </article>
+{% endblock %}

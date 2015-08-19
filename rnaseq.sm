@@ -12,8 +12,8 @@ workdir:
     config["workdir"]
 
 # create path for SGE output, temporary path etc.
-for d in ["logs", 'tmp', 'shell_logs', 'tmp/rseqc']:
-    os.makedirs(d, exist_ok=True)
+for d in ["pipeline_log", 'shell_log', 'rseqc']:
+    os.makedirs(os.path.join("tmp", d), exist_ok=True)
 
 ##### CONFIG #####
 # make none duplicate sample list that maintains the treatment grouping of samples
@@ -21,42 +21,40 @@ duplicates=set()
 SAMPLES = [ s for trt in sorted(config["treatments"].keys()) for s in config["treatments"][trt] \
               if not (s in duplicates or duplicates.add(s))]
 w_dir =  config["workdir"]
-delivery = config.get("delivery", config["workdir"] + "./delivery/")
+delivery = config.get("delivery", os.path.join(config["workdir"], "delivery"))
 data_dir = config["data_dir"]
 
-expGrp_lst =  [ str.strip(comp.split("-")[0]) for comp in config["comparisons"]]
-ctrlGrp_lst = [ str.strip(comp.split("-")[1]) for comp in config["comparisons"]]
+# when there is only one comparison specified, extra step to make it into a one item list
+if type(config["comparisons"]) is str:
+    config["comparisons"] = [config["comparisons"]]
 
-# HACK: to get current Snakefile directory
-_pipeline_dir = srcdir('.') #os.path.abspath(sys.path[0])
+# paired list of exp and ctrl treatments
+expGrp_lst =  [ str.strip(comp.split(":")[0]) for comp in config["comparisons"]]
+ctrlGrp_lst = [ str.strip(comp.split(":")[1]) for comp in config["comparisons"]]
+
+# samples pairing setup. default as not-paired
+paired = {} # dict of boolean values for exp:ctrl pairs. used in the edegr module
+if "paired" in config:
+    for num, (exp, ctrl) in enumerate(zip(expGrp_lst, ctrlGrp_lst)):
+        # default paired setting is false
+        paired["{}:{}".format(exp, ctrl)] = False
+        if num > len(config["paired"]):
+            print('\n{}[ERROR] config: not all comparison has paired information. Use default not paired.\n'.format(bcolors.FAIL, bcolors.ENDC))
+        elif config["paired"][num].lower() in ['yes', 'true']:
+            paired["{}:{}".format(exp, ctrl)] = True
+
+
+# HACK is replaced with new function ## to get current Snakefile directory #os.path.abspath(sys.path[0])
+_pipeline_dir = srcdir('.')
+
+# features to be compared. default to test "genes" and "isoforms"
+config["features"] = config.get("features", ["genes", "isoforms"])
+if type(config["features"]) is str: config["features"] = [config["features"]]
 
 #### set up reference folder ####
 ref_base = config.get('ref_base', "ref/")
-
-if not os.path.isdir(ref_base): # no ref dir defined, use current work_dir/ref
-    ref_base = "ref/"
-    config["ref_base"] = ref_base
-
 ref_fa  = config.get('ref_fa', os.path.join(ref_base, 'genome.fa'))
 ref_gtf = config.get("ref_gtf", os.path.join(ref_base, "annotation", "genes.gtf"))
-
-
-##### test rule ####
-# rule test_rsem:
-#     input: ["expression/{}_vs_{}.{}.counts.matrix".format(exp,ctrl,feature) for exp, ctrl in zip(expGrp_lst, ctrlGrp_lst) \
-#             for feature in ['genes','isoforms'] ]
-
-##### target #####
-# run all the rules by default
-rule all:
-    input: ["diff_expr/{}_vs_{}.{}_{}table.txt".format(exp,ctrl,feature, de)  \
-                    for exp, ctrl in zip(expGrp_lst, ctrlGrp_lst) \
-                    for feature in ['genes','isoforms'] \
-                    for de in ['', 'DE_']] ,
-            expand("expression/{f}_{m}_table.txt", f=["genes","isoforms"], m=["count", "TPM", "FPKM"])
-    params: mem='1G'
-    log: "shell_logs/analysis_done.log"
-
 
 # include software/program information
 include:
@@ -74,6 +72,8 @@ include:
 include:
     "modules/report/report.sm"
 
+# Aligner module:
+
 if config["align_exe"] == "STAR":
     include: "modules/STAR/align_star.sm"
 elif config['align_exe'] == "RSEM":
@@ -82,32 +82,44 @@ elif config['align_exe'] == "RSEM":
 else:
     print("\n{}[ERROR] config: ALIGN_exe needs to be one of STAR, RSEM, or BWA{}\n".format(bcolors.FAIL, bcolors.ENDC))
 
-# quantification
+# Quantification module:
 
-include:
-    'modules/RSEM/quant_rsem.sm'
-
-if config["quant_exe"].upper() == "RSEM":
+if config["quant_exe"].upper() == "RSEM" and config["align_exe"].upper() != "RSEM":
     include: "modules/RSEM/quant_rsem.sm"
 elif config["quant_exe"].lower() == "featurecounts":
     include: "modules/quant_featurecounts.sm"
-elif config["quant_exe"].lower() == "htseq-count":
-    include: "modules/quant_htseq.sm"
+elif config["quant_exe"].lower() == "star":
+    if len(config["features"]) > 1 or "genes" not in config["features"]:
+        print('\n{}[ERROR] config: STAR only provide read count per gene. Some features in the "feature list" are not applicable{}\n'.format(bcolors.FAIL, bcolors.ENDC))
+        config["features"] = ["genes"]
+    if config["align_exe"].upper() != "STAR": # otherwise align_star.sm has already included
+        include: "modules/STAR/align_star.sm"
 else:
-    print("\n{}[ERROR] config: QUANT_exe needs to be one of RSEM, featureCounts, or HTSeq-count{}\n".format(bcolors.FAIL, bcolors.ENDC))
+    print("\n{}[ERROR] config: QUANT_exe needs to be one of RSEM, STAR, or featureCounts{}\n".format(bcolors.FAIL, bcolors.ENDC))
 
-# program for differential expression analysis
+# Differential expression module
 if config["de_exe"].upper() == "EDGER":
     include: "modules/EdgeR/DE_analysis_edger.sm"
 elif config["de_exe"].upper() == "EBSEQ":
     include: "modules/EBseq/DE_analysis_ebseq.sm"
 else:
-    print("\n{}[ERROR] config: DE_exe needs to be one of EBseq, DEseq, or EdgeR{}\n".format(bcolors.FAIL, bcolors.ENDC))
+    print("\n{}[ERROR] config: DE_exe needs to be one of EBseq or EdgeR{}\n".format(bcolors.FAIL, bcolors.ENDC))
+
+
+##### target #####
+# run all the rules by default
+rule all:
+    input: ["diff_expr/{}_vs_{}.{}.{}.txt".format(exp,ctrl,feature, table)  \
+                    for exp, ctrl in zip(expGrp_lst, ctrlGrp_lst) \
+                    for feature in config["features"] \
+                    for table in ['diffexpr', 'DE']]
+    params: mem='1G'
+    log: "tmp/shell_log/analysis_done.log"
 
 # use all conditions in one conparison
 rule one_compare: 
     input: ["diff_expr/all.{}_DE_table.txt".format(feature) for feature in ['genes','isoforms'] ]
-    # input: "expression/all.genes.counts.matrix","expression/all.isoforms.counts.matrix"
+    # input: "expression/all.genes.readcounts.txt","expression/all.isoforms.readcounts.txt"
 
 ##### deliver #####
 rule deliver:
@@ -123,7 +135,7 @@ rule deliver:
             # for de in ['', 'DE_']
     params:
         o_dir = "mRNAseq_analysis"
-    log: "shell_logs/delivery.log"
+    log: "tmp/shell_log/delivery.log"
     message:
         "#  Copy / move results to delivery folder"
     shell:
