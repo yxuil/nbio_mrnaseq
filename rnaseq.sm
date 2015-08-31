@@ -28,31 +28,54 @@ data_dir = config["data_dir"]
 if type(config["comparisons"]) is str:
     config["comparisons"] = [config["comparisons"]]
 
+# remove the spaces in the comparisons' keys
+def remove_spaces(s):
+    items = map(lambda x: x.strip(), s.split(":"))
+    return ":".join(items)
+config["comparisons"] = list(map(remove_spaces, config["comparisons"]))
+
 # paired list of exp and ctrl treatments
 expGrp_lst =  [ str.strip(comp.split(":")[0]) for comp in config["comparisons"]]
 ctrlGrp_lst = [ str.strip(comp.split(":")[1]) for comp in config["comparisons"]]
 
 # samples pairing setup. default as not-paired
-paired = {} # dict of boolean values for exp:ctrl pairs. used in the edegr module
-if "paired" in config:
-    for num, (exp, ctrl) in enumerate(zip(expGrp_lst, ctrlGrp_lst)):
-        # default paired setting is false
-        paired["{}:{}".format(exp, ctrl)] = False
-        if num > len(config["paired"]):
-            print('\n{}[ERROR] config: not all comparison has paired information. Use default not paired.\n'.format(bcolors.FAIL, bcolors.ENDC))
-        elif config["paired"][num].lower() in ['yes', 'true']:
-            paired["{}:{}".format(exp, ctrl)] = True
+if "paired" not in config:
+    config["paired"] = [False] * len(config["comparisons"])
+elif type(config["paired"]) is str:
+    config["paired"] = [config["paired"]]
+d =len(config['comparisons']) -  len(config['paired']) 
+if d > 0:
+    config['paired'] += [False] * d
+for i, v in enumerate(config['paired']):
+    if (type(v) is str): 
+        if (v.lower() in ['yes', 'true']):
+            config['paired'][i]= True
+        else:
+            config['paired'][i]= False 
+
+
+paired = dict(zip(config['comparisons'], config['paired'])) # dict of boolean values for exp:ctrl pairs. used in the edegr module
+#for num, (exp, ctrl) in enumerate(zip(expGrp_lst, ctrlGrp_lst)):
+#        # default paired setting is false
+#        paired["{}:{}".format(exp, ctrl)] = False
+#        if num >= len(config["paired"]):
+#            print('\n{}[ERROR] config: not all comparison has paired information. Use default (not paired).\n'.format(bcolors.FAIL, bcolors.ENDC))
+#        elif config["paired"][num].lower() in ['yes', 'true']:
+#            paired["{}:{}".format(exp, ctrl)] = True
 
 
 # HACK is replaced with new function ## to get current Snakefile directory #os.path.abspath(sys.path[0])
 _pipeline_dir = srcdir('.')
 
-# features to be compared. default to test "genes" and "isoforms"
-config["features"] = config.get("features", ["genes", "isoforms"])
+# features to be compared. default to test "gene" and "isoform"
+config["features"] = config.get("features", ["gene", "isoform"])
+# make one item list if only one feature is specified
 if type(config["features"]) is str: config["features"] = [config["features"]]
+# convert "Genes", "genes", "GENE" and such to 'gene'; same for 'isoform'
+config["features"] = list(map(lambda x: x.lower().rstrip('s'), config["features"]))
 
 #### set up reference folder ####
-ref_base = config.get('ref_base', "ref/")
+ref_base = config.get('ref_base', "tmp/ref/")
 ref_fa  = config.get('ref_fa', os.path.join(ref_base, 'genome.fa'))
 ref_gtf = config.get("ref_gtf", os.path.join(ref_base, "annotation", "genes.gtf"))
 
@@ -89,9 +112,9 @@ if config["quant_exe"].upper() == "RSEM" and config["align_exe"].upper() != "RSE
 elif config["quant_exe"].lower() == "featurecounts":
     include: "modules/quant_featurecounts.sm"
 elif config["quant_exe"].lower() == "star":
-    if len(config["features"]) > 1 or "genes" not in config["features"]:
+    if len(config["features"]) > 1 or "gene" not in config["features"]:
         print('\n{}[ERROR] config: STAR only provide read count per gene. Some features in the "feature list" are not applicable{}\n'.format(bcolors.FAIL, bcolors.ENDC))
-        config["features"] = ["genes"]
+        config["features"] = ["gene"]
     if config["align_exe"].upper() != "STAR": # otherwise align_star.sm has already included
         include: "modules/STAR/align_star.sm"
 else:
@@ -105,50 +128,87 @@ elif config["de_exe"].upper() == "EBSEQ":
 else:
     print("\n{}[ERROR] config: DE_exe needs to be one of EBseq or EdgeR{}\n".format(bcolors.FAIL, bcolors.ENDC))
 
-
+# Pathway analysis
+if "pathway_exe" in config:
+    if config["pathway_exe"].upper() == "GOSEQ":
+        include: "modules/goseq/goseq.sm"
 ##### target #####
 # run all the rules by default
 rule all:
     input: ["diff_expr/{}_vs_{}.{}.{}.txt".format(exp,ctrl,feature, table)  \
                     for exp, ctrl in zip(expGrp_lst, ctrlGrp_lst) \
                     for feature in config["features"] \
-                    for table in ['diffexpr', 'DE']]
+                    for table in ['diffexpr', 'onlyDE']]
+
     params: mem='1G'
     log: "tmp/shell_log/analysis_done.log"
 
 # use all conditions in one conparison
 rule one_compare: 
-    input: ["diff_expr/all.{}_DE_table.txt".format(feature) for feature in ['genes','isoforms'] ]
-    # input: "expression/all.genes.readcounts.txt","expression/all.isoforms.readcounts.txt"
+    input: ["diff_expr/all.{}_DE_table.txt".format(feature) for feature in ['gene','isoform'] ]
+    # input: "expression/all.gene.readcounts.txt","expression/all.isoform.readcounts.txt"
 
 ##### deliver #####
-rule deliver:
+# This rule create a deliverable file that can be sent to client
+# currently the output is a tar gz file with prefix specified by "deliverable" in config file
+# it can only run after report.html file is created
+
+rule deliverable:
     input: "report.html"
-             # ["diff_expr/{}_vs_{}.{}_{}table.txt".format(exp,ctrl,feature, de)  \
-#             for exp, ctrl in zip(expGrp_lst, ctrlGrp_lst) \
-#             for feature in ['genes','isoforms'] ] \
-#             for de in ['', 'DE_']
-    output: "mRNAseq_analysis.tar.gz"
-            # ["{}/diff_expr/{}_vs_{}.{}_{}table.txt".format(delivery, exp,ctrl,feature, de)  \
-            # for exp, ctrl in zip(expGrp_lst, ctrlGrp_lst) \
-            # for feature in ['genes','isoforms'] ] \
-            # for de in ['', 'DE_']
+    output:"deliverable.tar.gz"
     params:
-        o_dir = "mRNAseq_analysis"
-    log: "tmp/shell_log/delivery.log"
-    message:
-        "#  Copy / move results to delivery folder"
+        temp_dir = "tmp/mRNAseq_analysis",
+        mem="4G"
+    log: "tmp/shell_log/deliverable_packing.log"
+    # message:
+    #    "#  Copy / move results to delivery folder"
     shell:
         """
-        mkdir -p {params.o_dir}/alignments {params.o_dir}/expression {params.o_dir}/diff_expr {params.o_dir}/QC_graphs
-        # link all delivery files except alignments/*_aligned_genome.*, which will be moved by deliver.sh
-        for fn in expression/*_table.txt diff_expr/*_table.txt QC_graphs/*.png; do
-            ln -s `readlink -e $fn` {params.o_dir}/$fn
+        for f in alignments expression diff_expr QC_graphs report; do
+            mkdir -p {params.temp_dir}/$f
         done
-        ln -s `readlink -e {_pipeline_dir}/workflow.png` {params.o_dir}/workflow.png
-        tar -hczf {params.o_dir}.tar.gz {params.o_dir}/
-        """
+       
+        # link all delivery files except alignments/*_aligned_genome.*, which will be moved by deliver.sh
+        for fn in expression/*_table.txt diff_expr/*gene*.txt QC_graphs/*.png report/* report.html; do
+            ln -s `readlink -e $fn` {params.temp_dir}/$fn
+        done
 
+        # compress the folder
+        cd `dirname {params.temp_dir}`
+        tar -hczf {w_dir}/{output} `basename {params.temp_dir}`
+        cd -
+
+        rm -r {params.temp_dir}
+        """
+rule deliver:
+    input: rules.deliverable.output
+    params:
+        dest = config["delivery"]
+    shell:"""
+        if [[ ${params.dest} == *.tar.gz ]]  # delivery is a file
+        then
+            dest_dir=`dirname {params.dest}`
+            dest_file=`basename {params.dest}`
+        else
+            dest_dir={params.dest}
+            dest_file="mRNAseq_Analysis.tar.gz"
+        fi
+
+        [ ! -d $dest_dir ] && mkdir -p $dest_dir
+        mv {input} $dest_dir/$dest_file
+
+        [ ! -d $dest_dir/alignments ] && mkdir -p $dest_dir/alignments
+        for fn in alignments/*_aligned_genome.*; do
+            echo "moving file: $fn ..."
+            mv $fn $dest_dir/alignments  # move the file to the delivery folder
+            echo "file - $fn - has been moved. Save a symbolic link"
+            ln -s $dest_dir/alignments/`basename $fn` $fn      # make a symbolic link in the original place
+        done
+
+        # Change file permission"
+        chgrp -R "BIOTECH\\brcdownloaders" $dest_dir  # update the group to allow user download previllege
+
+    """
 
 ##### remove #####
 rule remove:

@@ -18,13 +18,13 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-def get_ref(wc):
-    ref_base = config.get('ref_base', "")
-    ref_fa  = config.get("ref_fa" , "")
-    if ref_base != '':
-        return os.path.join(ref_base,"genome.fa")
-    else:
-        return ref_fa
+#def get_ref(wc):
+#    ref_base = config.get('ref_base', "")
+#    ref_fa  = config.get("ref_fa" , "")
+#    if ref_base != '':
+#        return os.path.join(ref_base,"genome.fa")
+#    else:
+#        return ref_fa
 
 
 # this two function to find out if a sample is paired end

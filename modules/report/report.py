@@ -27,15 +27,15 @@ def generate_report(config):
     alignment_html = open("alignments/alignment_stat.html").read()\
         if os.path.isfile("alignments/alignment_stat.html") \
         else "Alignment report is not available."
-    de_html  = open("diff_expr/de_report.html").read()\
-        if os.path.isfile("diff_expr/de_report.html") \
-        else "Differential expression report is not available"
-    geneset_html  = open("pathways/pathway_report.html").read()\
-        if os.path.isfile("pathways/pathway_report.html") \
-        else "Pathway analysis was not ordered. Pathway report is not available "
     expr_html  = open("expression/exp_report.html").read()\
         if os.path.isfile("expression/exp_report.html") \
         else "Expression tables are not available"
+    de_html  = open("diff_expr/de_report.html").read()\
+        if os.path.isfile("diff_expr/de_report.html") \
+        else "Differential expression report is not available"
+    geneset_html  = open("pathway/pathway_report.html").read()\
+        if os.path.isfile("pathway/pathway_report.html") \
+        else "Pathway analysis was not ordered. Pathway report is not available "
     #_html  = open("").read()\
     #    if os.path.isfile \
     #    else ""

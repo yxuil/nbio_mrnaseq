@@ -16,13 +16,13 @@ def edger_report(config, output):
     file_list = []
     for cmp in config["comparisons"]:
         condition1, condition2 = map(lambda x: str(x).strip(), cmp.split(":")) # split cmp and strip whitespace
-        fn = "diff_expr/{}_vs_{}.genes.diffexpr.txt".format(condition1, condition2)
+        fn = "diff_expr/{}_vs_{}.gene.diffexpr.txt".format(condition1, condition2)
         file_list.append(fn)
         with open(fn) as f_in:
             line_count = sum(1 for _ in f_in)  # _ is a throwaway variable
         total_gene = line_count - 1            # remove the header line
 
-        fn = "diff_expr/{}_vs_{}.genes.DE.txt".format(condition1, condition2)
+        fn = "diff_expr/{}_vs_{}.gene.onlyDE.txt".format(condition1, condition2)
         with open(fn) as f_in:
             line_count = sum(1 for _ in f_in)
         de_gene = line_count - 1

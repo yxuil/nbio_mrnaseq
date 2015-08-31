@@ -39,7 +39,6 @@ fi
 #
 
 if hash qsub 2>/dev/null; then  # check if qsub available
-    jn=`date +%Y_%m_%d`
     config=$1
     shift              # get everything after the config file
     ${progPath}/run_rnaseq.sh $config -c "$qsub_default" --jn s.\{rulename\}.\{jobid\} -w 30 -j 20 $@

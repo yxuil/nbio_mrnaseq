@@ -18,7 +18,7 @@ rule ebseq:
 
 rule de_fdr:
     input: "tmp/ebseq/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}.diffexpr.txt"
-    output: "tmp/ebseq/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}.DE.txt"
+    output: "tmp/ebseq/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}.onlyDE.txt"
     log: "tmp/shell_log//{exp}_vs_{ctrl}.{feature}.DE_ebseq.log"
     params:
         mem = "8G",
@@ -106,7 +106,7 @@ rule ebseq_all:
 
 rule de_fdr_all:
     input: "expression/all.{feature, [a-zA-Z]+}.diffexpr.txt"
-    output: "expression/all.{feature, [a-zA-Z]+}.DE.txt"
+    output: "expression/all.{feature, [a-zA-Z]+}.onlyDE.txt"
     params: 
         pval = config["fdr"]
     message: """\n##### Filter for differentially expressed genes by FDR

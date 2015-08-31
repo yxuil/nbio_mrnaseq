@@ -65,7 +65,8 @@ edgeR = """
         fit <- glmFit(y, design)
         lrt <- glmLRT(fit)
         # top genes
-        write.table(topTags(lrt, n=Inf, sort.by="PValue"), file="{prefix}.diffexpr.txt", sep = '\t', row.names=FALSE,na='')
+        de_table = format(topTags(lrt, n=Inf, sort.by="PValue"), digit = 2)
+        write.table(de_table, file="{prefix}.diffexpr.txt", sep = '\t', row.names=FALSE,na='')
         # num of de genes summary
         de <- decideTestsDGE(lrt)
         de_stat = summary(de)
@@ -79,8 +80,8 @@ edgeR = """
         dev.off()
         """
 rule edger:
-    input: "expression/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}.readcounts.txt"
-    output: "tmp/edger/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}.diffexpr.txt"
+    input: "expression/{exp}_vs_{ctrl}.{feature}.readcounts.txt"
+    output: "tmp/edger/{exp}_vs_{ctrl}.{feature, gene|isoform}.diffexpr.txt"
     # message: """\n##### Differential expression analysis between treatment groups with ebseq
     # # rule:    edger
     # # INPUT:   {input}
@@ -111,15 +112,15 @@ rule edger:
 
 rule mv_edger_result:
     input: "tmp/edger/{exp}_vs_{ctrl}.{feature}.diffexpr.txt"
-    output: "diff_expr/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}.diffexpr.txt"
+    output: "diff_expr/{exp}_vs_{ctrl}.{feature, gene|isoform}.diffexpr.txt"
     log: "tmp/shell_log/{exp}_vs_{ctrl}.{feature}.mv_edger_result.log"
     params:
         mem = "2G"
-    shell: "ln {input} {output}"
+    shell: "mv {input} {output}"
 
 rule filter_edger:
     input: "diff_expr/{exp}_vs_{ctrl}.{feature}.diffexpr.txt"
-    output: "diff_expr/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}.DE.txt"
+    output: "diff_expr/{exp}_vs_{ctrl}.{feature, gene|isoform}.onlyDE.txt"
     # message: """\n##### Differential expression analysis between treatment groups with ebseq
     # # rule:    filter_edger
     # # INPUT:   {input}
@@ -140,11 +141,12 @@ rule report_edger:
     input: ["diff_expr/{}_vs_{}.{}.{}.txt".format(exp,ctrl,feature,table) \
                     for exp, ctrl in zip(expGrp_lst, ctrlGrp_lst) \
                     for feature in config["features"] \
-                    for table in ['diffexpr', 'DE']]
+                    for table in ['diffexpr', 'onlyDE']]
     output: html="diff_expr/de_report.html", txt = "diff_expr/de_report.txt"
     params:
         mem = "8G"
     run:
+        from jinja2 import Template
         import pandas as pd
         header = "Condition1,Replicates,Condition2,Replicates,Total Expressed Genes,DE Genes".split(',')
         table_content  = []
@@ -152,13 +154,13 @@ rule report_edger:
         # gene table file list
         file_list = []
         for condition1, condition2 in zip(expGrp_lst, ctrlGrp_lst):
-            fn = "diff_expr/{}_vs_{}.genes.diffexpr.txt".format(condition1, condition2)
+            fn = "diff_expr/{}_vs_{}.gene.diffexpr.txt".format(condition1, condition2)
             # file_list.append(fn)
             with open(fn) as f_in:
                 line_count = sum(1 for _ in f_in)  # _ is a throwaway variable
             total_gene = line_count - 1            # remove the header line
 
-            fn = "diff_expr/{}_vs_{}.genes.DE.txt".format(condition1, condition2)
+            fn = "diff_expr/{}_vs_{}.gene.onlyDE.txt".format(condition1, condition2)
             file_list.append(fn)
             with open(fn) as f_in:
                 line_count = sum(1 for _ in f_in)
@@ -172,31 +174,42 @@ rule report_edger:
         table_df.to_csv(output.txt, sep="\t", index=False)
 
         # add links to the gene table
-        table_df['DE Genes'] = '<a href="#' + table_df["Condition1"] + '_' + table_df["Condition2"] + '">' + table_df['DE Genes'].map(str) + '</a>'
+        table_df['DE Genes'] = '<a href="#tab-' + (table_df.index + 1).map(str) + '">' + table_df['DE Genes'].map(str) +'</a>'
+        #'<a href="#' + table_df["Condition1"] + '_' + table_df["Condition2"] + '">' + table_df['DE Genes'].map(str) + '</a>'
+        summary_html = table_df.to_html(classes="brc", escape=False, index=False)
 
         # write gene table
         grid_js, gt_divs = table_to_html(file_list)
+
+        html_template = Template("""
+        <div class=tabs>
+            {% for e, c, gt_tbl in labeled_gt %}
+            <div id=tab-{{ loop.index }}> <a href="#tab-{{ loop.index }}">{{ e }}_vs_{{ c }}</a>
+                {{ gt_tbl }}
+
+            </div>
+            {% endfor %}
+        </div>
+        <div>Only differentially expressed genes are shown. Full gene table see `*.gene.diffexpr.txt` files in `diff_expr` folder.</div>
+
+        <link rel="stylesheet" href="http://cdn.pydata.org/bokeh/release/bokeh-0.9.2.min.css" type="text/css" />
+        <script type="text/javascript" src="http://cdn.pydata.org/bokeh/release/bokeh-0.9.2.min.js"></script>
+        {{ grid_js }}
+        """)
+
+        de_html = html_template.render(labeled_gt=zip(expGrp_lst, ctrlGrp_lst, gt_divs), grid_js=grid_js)
+
         with open(output.html, 'w') as f_out:
             #write out summary table
-            f_out.write(table_df.to_html(classes="brc", escape=False, index=False))
-
-            # write out gene table
-            for exp, ctrl, gt_div in zip (expGrp_lst, ctrlGrp_lst, gt_divs):
-                f_out.write("""
-                <div class="genetable" id="{e}_{c}">
-                    <p>Differentially expressed genes between {e} and {c}. Full gene table see `diff_expr/{e}_vs_{c}.genes.diffexpr.txt".</p>
-                    {gt}
-                </div>
-                <hr>
-                """.format(e=exp, c=ctrl, gt=gt_div))
-
             f_out.write("""
-            <link rel="stylesheet" href="http://cdn.pydata.org/bokeh/release/bokeh-0.9.2.min.css" type="text/css" />
-            <script type="text/javascript" src="http://cdn.pydata.org/bokeh/release/bokeh-0.9.2.min.js"></script>
+            <div id="de-summary">
             {}
-            """.format(grid_js))
+            </div>
+            {}
+            """.format(summary_html, de_html) )
 
 
-rule run_edger:
-    input: ["diff_expr/{exp}_vs_{ctrl}.{feature}.DE.txt".format(exp=exp,ctrl=ctrl,feature=feature)  \
-                    for exp, ctrl in zip(expGrp_lst, ctrlGrp_lst)  for feature in ['genes','isoforms'] ]
+
+rule diffexpr:
+    input: ["diff_expr/{exp}_vs_{ctrl}.{feature}.onlyDE.txt".format(exp=exp,ctrl=ctrl,feature=feature)  \
+                    for exp, ctrl in zip(expGrp_lst, ctrlGrp_lst)  for feature in config["features"] ]

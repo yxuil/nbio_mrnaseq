@@ -6,20 +6,21 @@ STAR_IDX_DIR   = os.path.join(ref_base, "STARIndex")
 STAR_IDX = [os.path.join(ref_base, "STARIndex", fn) for fn in STAR_IDX_FILES]
 
 # point STAR_IDX to project folder if star reference is incomplete
-for fn in STAR_IDX_FILES:
-    if not os.path.isfile(os.path.join(fn)):
-        STAR_IDX = [os.path.join('ref', "STARIndex", fn) for fn in STAR_IDX_FILES]
-        STAR_IDX_DIR = os.path.join("ref", "STARIndex")
-        break 
+#for fn in STAR_IDX_FILES:
+#    if not os.path.isfile(os.path.join(fn)):
+#        STAR_IDX = [os.path.join("STARIndex", fn) for fn in STAR_IDX_FILES]
+#        STAR_IDX_DIR = os.path.join("STARIndex")
+#        break 
 
 rule star_index:
     input:
-        fa = ref_fa, #os.path.join(ref_base, "genome.fa"),
-        gtf= ref_gtf #os.path.join(ref_base, "annotation", "genes.gtf")
+        fa = ref_fa,
+        gtf= ref_gtf 
     output: STAR_IDX
-    log: "tmp/shell_log/star_index_pass1.log"
+    log: "tmp/pipeline_log/star_index.log"
     params:
-        mem="34G",
+        mem="34G", 
+        log="tmp/shell_log/star_index_Log.out"
     threads: 8
     message: """\n##### Create STAR reference genome index with known gene annotation
     # rule: star_index
@@ -27,10 +28,10 @@ rule star_index:
     # OUTPUT:  {output}
     # PROGRAM: STAR genomeGenerate
     """
-    shell: "cd {STAR_IDX_DIR};"
-           "{STAR} --runThreadN {threads} --runMode genomeGenerate --genomeDir {STAR_IDX_DIR} " \
-           "--genomeFastaFiles {input.fa} --sjdbGTFfile {input.gtf} --sjdbOverhang {read_length}; "\
-           "cd -"
+    shell: """
+    {STAR} --runThreadN {threads} --runMode genomeGenerate --genomeDir {STAR_IDX_DIR} --genomeFastaFiles {input.fa} --sjdbGTFfile {input.gtf} --sjdbOverhang {read_length}
+    mv Log.out {params.log}
+    """
 
 rule star_align_pass1:
     input:
@@ -58,7 +59,6 @@ rule star_align_pass1:
             --readFilesCommand zcat --outFileNamePrefix {params.o_prefix} --outSAMattributes NH HI AS NM MD XS \
             --outFilterMultimapNmax 50 #$logging
         """
-
 
 star_junc_merge= srcdir("star_junc_merge.py")
 rule merge_star_junction:
@@ -132,7 +132,7 @@ rule mv_alignment:
             "mv  {input[1]} {output[1]}"
 
 rule star_readcount:
-    input: expand("tmp/star_alignment_pass2/{sample}_ReadsPerGene.out.tab", sample = config["treatments"][exp] + config["treatments"][ctrl])
+    input: lambda wc: ["tmp/star_alignment_pass2/{s}_ReadsPerGene.out.tab".format(s=sample) for sample in config["treatments"][wc.exp] + config["treatments"][wc.ctrl]]
     output: "expression/{exp}_vs_{ctrl}.gene.readcount.txt"
     log: "tmp/shell_log/{exp}_vs_{ctrl}.gene.readcount.star.log"
     params:
@@ -157,7 +157,8 @@ rule star_readcount:
 
 star_report = srcdir("align_star_report.py")
 rule alignment_stat:
-    input: expand("tmp/pipeline_log/star_align_{sample}.final.log", sample=SAMPLES)
+    input: expand("alignments/{sample}_aligned_genome.bam", sample=SAMPLES),
+           expand("tmp/pipeline_log/star_align_{sample}.final.log", sample=SAMPLES)
     output: "alignments/alignment_stat.html"
     params: mem='1G', o_prefix="alignments/alignment_stat"
     log: "tmp/shell_log/trim_report.log"

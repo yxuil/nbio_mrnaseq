@@ -1,6 +1,6 @@
 rule versions:
-    input:
-    output: "tmp/pipeline_tmp/pipeline_log/software_version.txt"
+    output: "tmp/software_version.txt"
+    params: mem = "1G"
     shell: """
         {SKEWER} -v | head -1 > {output}
         {STAR} --version | head -1 >> {output}
@@ -11,8 +11,20 @@ rule versions:
     """
 
 curdir = srcdir(".")
+def report_input(wc):
+    required_input = [ "trimmed_fq/trim_stat.html",
+                       "QC_graphs/qc_table.html",
+                       "alignments/alignment_stat.html",
+                       "expression/exp_report.html",
+                       "diff_expr/de_report.html",
+                       "tmp/software_version.txt" ]
+    if "pathway_exe" in config:
+        required_input.append("pathway/pathway_report.html")
+
+    return required_input
+
 rule report:
-    input: "trimmed_fq/trim_stat.html", "QC_graphs/qc_table.html", "alignments/alignment_stat.html", "expression/exp_report.html", "diff_expr/de_report.html", rules.versions.output
+    input:  report_input
     output:
         html = "report.html",
         project = "report/project.html",
@@ -23,10 +35,10 @@ rule report:
         mem="1G",
         report_dir="report"
     shell: """
+        {curdir}/report.py {config_fn}
         cp {curdir}/workflow.png {output.png}
         cp -r {curdir}/CSS {params.report_dir}
         cp -r {curdir}/JS {params.report_dir}
-        {curdir}/report.py {config_fn}
         cp {curdir}/redirect.html {output.html}
         """
 

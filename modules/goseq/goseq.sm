@@ -1,43 +1,159 @@
-rule goseq:
-    input: "diff_expr/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}.diffexpr.txt"
-    output: "tmp/goseq/{exp}_vs_{ctrl}.{feature, [a-zA-Z]+}.diffexpr.txt"
-    message: """\n##### Differential expression analysis between treatment groups with ebseq
-    # rule:    edger
-    # INPUT:   {input}
-    # OUTPUT:  {output}
-    # PROGRAM: goseq_R
-    """
+SIG_P = 0.25  # pvalue threshold for significant pathways
+PA_TABLES = ['KEGG_pathway', 'GO_Biological_Process', 'GO_Molecular_Function','GO_Cellular_Component']
 
-    log: "tmp/shell_log/{exp}_vs_{ctrl}.{feature}.goseq.log"
+GOSEQ = """
+sig_threshold = {sig}
+library(goseq)
+library(GO.db)
+library(KEGG.db)
+
+all_genes = read.table("diff_expr/{comparison}.gene.diffexpr.txt", header=TRUE, sep='\\t', row.names=1)
+de_genes = read.table("diff_expr/{comparison}.gene.onlyDE.txt", header=TRUE, sep='\\t', row.names=1)
+
+genes = as.integer( row.names(all_genes) %in% row.names(de_genes))
+names(genes)=row.names(all_genes)
+
+# crate pwf table
+pwf=nullp(genes,"{genome}","{ID_type}", plot.fit=FALSE)
+
+# GO analysis
+GO = goseq(pwf,"{genome}","{ID_type}")
+
+# adjust pvalue
+GO$FDR = p.adjust(GO$over_represented_pvalue, method="BH")
+GO.sig=GO[GO$FDR < sig_threshold, ]
+ 
+# output
+write.table(format(GO.sig[GO.sig$ontology == "BP",], digit = 2), "{prefix}.GO_Biological_Process.txt", sep='\\t', quote=F)
+write.table(format(GO.sig[GO.sig$ontology == "MF",], digit = 2), "{prefix}.GO_Molecular_Function.txt", sep='\\t', quote=F)
+write.table(format(GO.sig[GO.sig$ontology == "CC",], digit = 2), "{prefix}.GO_Cellular_Component.txt", sep='\\t', quote=F)
+
+# KEGG analysis
+KEGG = goseq(pwf, "{genome}","{ID_type}", test.cats="KEGG")
+KEGG$FDR = p.adjust(KEGG$over_represented_pvalue, method="BH")
+
+# Get pathway names for significant patways
+KEGG.sig = KEGG[KEGG$FDR < sig_threshold,]
+
+pathway = stack(mget(KEGG.sig$category, KEGGPATHID2NAME))
+
+KEGG.sig$pathway = pathway$values
+write.table(format(KEGG.sig, digit = 2), '{prefix}.KEGG_pathway.txt', sep='\t', quote=F)
+
+"""
+
+rule goseq:
+    input: "diff_expr/{exp}_vs_{ctrl}.gene.diffexpr.txt", 
+            "diff_expr/{exp}_vs_{ctrl}.gene.onlyDE.txt"
+    output: "tmp/goseq/{exp}_vs_{ctrl}.%s.txt" % (pa_table, ) \
+                for pa_table in PA_TABLES
+
+    log: "tmp/shell_log/{exp}_vs_{ctrl}.goseq.log"
     params:
         mem = "8G",
-        prefix = "tmp/goseq/{exp}_vs_{ctrl}.{feature}",
-        # treatments in form of c("trt_rep1", "trt_rep2", "trt_rep3", "ctrl_rep1", "ctrl_rep2", "ctrl_rep3")
-        treatments = lambda wc: 'c("{}")'.format('", "'.join([wc.exp] * len(config["treatments"][wc.exp]) +
-                                                             [wc.ctrl] * len(config["treatments"][wc.ctrl]))),
-        # if paired make paired information in form of c("0", "1", "2", "0", "1", "2")
-        pairs = lambda wc: 'c("{}")'.format('", "'.join(map(str, list(range(len(config["treatments"][wc.exp]))) +
-                                               list(range(len(config["treatments"][wc.ctrl]))) ) ) ) \
-                           if paired["{}:{}".format(wc.exp, wc.ctrl)] else "c()"
-        # conditions=lambda wc: ','.join(map(str, (map(len, [config["treatments"][wc.exp], config["treatments"][wc.ctrl]]))))
+        comparison = "{exp}_vs_{ctrl}",
+        prefix = "tmp/goseq/{exp}_vs_{ctrl}"
     run:
-       # try:
-        #     import rpy2
-        #     print("python version is", sys.version_info)
-        #     print("rpy2 version is", rpy2.__version__)
-        # except Exception as e:
-        #     print("no rpy2", e)
-        #
-        # R()
-        rscript = edgeR.format(INPUT=input,
-                               prefix=params.prefix,
-                               treatments=params.treatments ,
-                               pairs = params.pairs)
-        with open(params.prefix + "_edger.R", 'w') as rscript_out:
+        rscript = GOSEQ.format(comparison = params.comparison,
+                                prefix=params.prefix,
+                                sig = SIG_P,
+                                genome = "hg19",
+                                ID_type = "geneSymbol")
+        with open(params.prefix + ".goseq.R", 'w') as rscript_out:
             rscript_out.write(rscript)
-        shell("Rscript {params.prefix}_edger.R")
+        shell("Rscript {params.prefix}.goseq.R")
 
+rule mv_goseq:
+    input: "tmp/goseq/{exp}_vs_{ctrl}.{pa_table}.txt"
+    output: "pathway/{exp}_vs_{ctrl}.{pa_table}.txt"    
+    params: mem = "1G"
+    shell: "mv {input} {output}"
 
+rule report_goseq:
+    input: ["pathway/{exp}_vs_{ctrl}.{pa_table}.txt".format(exp=exp,ctrl=ctrl,pa_table=pa_table)  \
+                    for exp, ctrl in zip(expGrp_lst, ctrlGrp_lst) \
+                    for pa_table in PA_TABLES]
+    output: html = "pathway/pathway_report.html", txt = "pathway/pathway_report.txt"
+    params: mem = "4G"
+    run:
+        from jinja2 import Template
+        import pandas as pd
+
+        file_list = list(input)
+#        summarize how many pathways are enriched
+
+        table_content = []
+        for fn in file_list:
+            comp, pa_table = fn.split('.')[:2]
+            comp     = comp.replace('_vs_', ' vs. ')
+            pa_table = pa_table.replace('_', ' ')
+
+            # count number of pathways been enriched
+            num_pa = open(fn).read().count('\n') - 1
+
+            # make table
+            row = [comp, pa_table, num_pa]
+            table_content.append(row)
+
+        # write DE summary table
+        table_df = pd.DataFrame(table_content, columns=["Comparison", "Pathways", "Enriched"])
+        table_df.to_csv(output.txt, sep="\t", index=False)
+
+        # add links to the gene table
+        table_df['Enriched'] = '<a href="#tab-' + (table_df.index + 1).map(str) + '">' + table_df['Enriched'].map(str) +'</a>'
+        table_df = table_df.set_index(["Comparison", "Pathways"])
+        # make html table
+        summary_html = table_df.to_html(classes="brc", escape=False, index=True)
+
+        grid_js, pa_divs = table_to_html(file_list)
+#
+        html_template = Template("""
+        <div class = tabs>
+            {% for exp, ctrl, pa, tbl in exp_ctrl_tbl %}
+            <div id=tab-{{ loop.index }}><a href="#tab-{{ loop.index }}">{{ exp }} vs. {{ ctrl }} {{ pa }}</a>
+                {{ tbl }}
+            </div>
+            {% endfor %}
+        </div>
+
+        <link rel="stylesheet" href="http://cdn.pydata.org/bokeh/release/bokeh-0.9.2.min.css" type="text/css" />
+        <script type="text/javascript" src="http://cdn.pydata.org/bokeh/release/bokeh-0.9.2.min.js"></script>
+
+        {{ grid_js }}
+
+#        <form class="selector">
+#            <select>
+#            {% for exp, ctrl in exp_ctrl %}
+#                <option>{{ exp }} vs. {{ ctrl }}</option>
+#            {% endfor %}
+#            </select>
+#            <select>
+#            {% for pa in pa_table %}
+#                <option>{{ pa }}</option>
+#            {% endfor %}
+#            </select>
+#        </form>
+        """)
+
+        exp_lst_rep = [ i for i in expGrp_lst for rep in range(len(PA_TABLES))] # repeat exp for # of pa_tables
+        ctrl_lst_rep = [ i for i in ctrlGrp_lst for rep in range(len(PA_TABLES))] # same for ctrl
+        pa_tbl_rep = [ i for rep in range(len(expGrp_lst)) for i in PA_TABLES]   # and for pa_tables
+
+        pa_html = html_template.render(exp_ctrl_tbl=zip(exp_lst_rep, ctrl_lst_rep, pa_tbl_rep, pa_divs),
+                                        grid_js=grid_js,
+                                        exp_ctrl = zip(expGrp_lst, ctrlGrp_lst),
+                                        pa_table= map(lambda x: x.replace("_", " "), PA_TABLES) )
+
+        with open(output.html, 'w') as f_out:
+            #write out summary table
+            f_out.write("""
+            <div id="pa-summary">
+            {}
+            </div>
+            {}
+            """.format(summary_html, pa_html) )
+ 
 rule run_goseq:
-    input: ["tmp/edger/{exp}_vs_{ctrl}.{feature}.diffexpr.txt".format(exp=exp,ctrl=ctrl,feature=feature)  \
-                    for exp, ctrl in zip(expGrp_lst, ctrlGrp_lst)  for feature in ['genes','isoforms'] ]
+    input: ["pathway/{exp}_vs_{ctrl}.{pa_table}.txt".format(exp=exp,ctrl=ctrl, pa_table = pa_table)  \
+                    for exp, ctrl in zip(expGrp_lst, ctrlGrp_lst) \
+                    for pa_table in PA_TABLES ]

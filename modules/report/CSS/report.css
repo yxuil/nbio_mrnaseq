@@ -155,9 +155,48 @@
 
 /* tabs with css3 */
 
+/* Tabbed example */
+div.tabs {
+  margin-left: 2em;
+  min-height: 18em;		/* No height: can grow if :target doesn't work */
+  position: relative;	/* Establish a containing block */
+  line-height: 1;		/* Easier to calculate with */
+  z-index: 0}			/* So that we can put other things behind */
+div.tabs > div {
+  display: inline}		/* We want the buttons all on one line */
+div.tabs > div > a {
+  color: black;			/* Looks more like a button than a link */
+  background: #DDD;		/* Active tabs are light gray */
+  padding: 0.2em;		/* Some breathing space */
+  border: 0.1em outset #CCC;	    /* Make it look like a button */
+  border-bottom: 0.1em solid #DDD} /* Visually connect tab and tab body */
+div.tabs > div:not(:target) > a {
+  border-bottom: none;		/* Make the bottom border disappear */
+  background: #AAA}		    /* Inactive tabs are dark gray */
+div.tabs > div:target > a,	/* Apply to the targeted item or... */
+:target #tab-1 > a {		/* ... to the default item */
+  border-bottom: 0.1em solid #DDD; /* Visually connect tab and tab body */
+  background: #DDD}		/* Active tab is light gray */
+div.tabs > div > div {
+  background: #DDD;		/* Light gray */
+  z-index: -2;			/* Behind, because the borders overlap */
+  left: 0; top: 1.3em;		/* The top needs some calculation... */
+  bottom: 0; right: 0;		/* Other sides flush with containing block */
+  overflow: auto;		/* Scroll bar if needed */
+  padding: 0.3em;		/* Looks better */
+  border: 0.1em outset #CCC}	/* 3D look */
+div.tabs > div:not(:target) > div { /* Protect CSS1 & CSS2 browsers */
+  position: absolute }		/* All these DIVs overlap */
+div.tabs > div:target > div, :target #tab-1 > div {
+  position: absolute;		/* All these DIVs overlap */
+  z-index: -1}			/* Raise it above the others */
+
+div.tabs :target {
+  outline: none}
+/*
 #container {
-    /*margin: 0 auto;
-    width: 50%;   Ancho del contenedor */
+    margin: 0 auto;
+    width: 50%;
 	margin-left: 1em;
 	margin-right: .25em;
 }
@@ -168,13 +207,13 @@
 }
 
 #container label {
-	background: #f9f9f9;  /* Fondo de las pestañas */
+	background: #f9f9f9;
 	border-radius: .25em .25em 0 0;
-	color: #888;  /* Color del texto de las pestañas */
+	color: #888;
 	cursor: pointer;
 	display: block;
 	float: left;
-	font-size: 1em;  /* Tamaño del texto de las pestañas */
+	font-size: 1em;
 	height: 2.5em;
 	line-height: 2.5em;
 	margin-right: .25em;
@@ -183,13 +222,13 @@
 }
 
 #container input:hover + label {
-	background: #ddd;  /* Fondo de las pestañas al pasar el cursor por encima */
-	color: #666;  /* Color del texto de las pestañas al pasar el cursor por encima */
+	background: #ddd;
+	color: #666;
 }
 
 #container input:checked + label {
-	background: #f1f1f1;  /* Fondo de las pestañas al presionar */
-	color: #444; /* Color de las pestañas al presionar */
+	background: #f1f1f1;
+	color: #444;
 	position: relative;
 	z-index: 6;
 	/*
@@ -197,13 +236,13 @@
 	-moz-transition: .1s;
 	-o-transition: .1s;
 	-ms-transition: .1s;
-	*/
+
 }
 
 #content {
-	background: #f1f1f1;  /* Fondo del contenido */
+	background: #f1f1f1;
 	border-radius: 0 .25em .25em .25em;
-	min-height: 20em;  /* Alto del contenido */
+	min-height: 20em;
 	position: relative;
 	width: 100%;
 	z-index: 5;
@@ -216,7 +255,7 @@
 	z-index: -100;
 	/*
 	transition: all linear 0.1s;
-	*/
+
 }
 
 #content-1 p,
@@ -273,3 +312,4 @@
 input.visible {
   visibility: visible !important;
 }
+*/
