@@ -20,8 +20,14 @@ pwf=nullp(genes,"{genome}","{ID_type}", plot.fit=FALSE)
 GO = goseq(pwf,"{genome}","{ID_type}")
 
 # adjust pvalue
-GO$FDR = p.adjust(GO$over_represented_pvalue, method="BH")
-GO.sig=GO[GO$FDR < sig_threshold, ]
+GO$over_represented_FDR = p.adjust(GO$over_represented_pvalue, method="BH")
+GO$under_represented_FDR = p.adjust(GO$under_represented_pvalue, method="BH")
+
+GO.sig=GO[GO$over_represented_FDR < sig_threshold || GO$under_represented_FDR < sig_threshold, ]
+GO.sig$defination <- sapply(GO.sig$category, function(x) Definition(GOTERM[[x]]) )
+
+GO.sig$over_represented_pvalue <- NULL
+GO.sig$under_represented_pvalue <- NULL
  
 # output
 write.table(format(GO.sig[GO.sig$ontology == "BP",], digit = 2), "{prefix}.GO_Biological_Process.txt", sep='\\t', quote=F)
@@ -30,10 +36,13 @@ write.table(format(GO.sig[GO.sig$ontology == "CC",], digit = 2), "{prefix}.GO_Ce
 
 # KEGG analysis
 KEGG = goseq(pwf, "{genome}","{ID_type}", test.cats="KEGG")
-KEGG$FDR = p.adjust(KEGG$over_represented_pvalue, method="BH")
+KEGG$over_represented_FDR = p.adjust(KEGG$over_represented_pvalue, method="BH")
+KEGG$under_represented_FDR = p.adjust(KEGG$under_represented_pvalue, method="BH")
 
 # Get pathway names for significant patways
-KEGG.sig = KEGG[KEGG$FDR < sig_threshold,]
+KEGG.sig = KEGG[KEGG$over_represented_FDR < sig_threshold || KEGG$under_represented_FDR < sig_threshold,]
+KEGG.sig$over_represented_pvalue <- NULL
+KEGG.sig$under_represented_pvalue <- NULL
 
 pathway = stack(mget(KEGG.sig$category, KEGGPATHID2NAME))
 
@@ -106,10 +115,10 @@ rule report_goseq:
         summary_html = table_df.to_html(classes="brc", escape=False, index=True)
 
         grid_js, pa_divs = table_to_html(file_list)
-#
+        # The tabbed interface is templated from http://www.w3.org/Style/Examples/007/target.en.html#tab1
         html_template = Template("""
         <div class = tabs>
-            {% for exp, ctrl, pa, tbl in exp_ctrl_tbl %}
+            {% for exp, ctrl, pa, tbl in grid_tbl %}
             <div id=tab-{{ loop.index }}><a href="#tab-{{ loop.index }}">{{ exp }} vs. {{ ctrl }} {{ pa }}</a>
                 {{ tbl }}
             </div>
@@ -120,19 +129,20 @@ rule report_goseq:
         <script type="text/javascript" src="http://cdn.pydata.org/bokeh/release/bokeh-0.9.2.min.js"></script>
 
         {{ grid_js }}
-
-#        <form class="selector">
-#            <select>
-#            {% for exp, ctrl in exp_ctrl %}
-#                <option>{{ exp }} vs. {{ ctrl }}</option>
-#            {% endfor %}
-#            </select>
-#            <select>
-#            {% for pa in pa_table %}
-#                <option>{{ pa }}</option>
-#            {% endfor %}
-#            </select>
-#        </form>
+<!--
+        <form class="selector">
+            <select>
+            {% for exp, ctrl in exp_ctrl %}
+                <option>{{ exp }} vs. {{ ctrl }}</option>
+            {% endfor %}
+            </select>
+            <select>
+            {% for pa in pa_table %}
+                <option>{{ pa }}</option>
+            {% endfor %}
+            </select>
+        </form>
+-->
         """)
 
         exp_lst_rep = [ i for i in expGrp_lst for rep in range(len(PA_TABLES))] # repeat exp for # of pa_tables
