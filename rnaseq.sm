@@ -153,62 +153,67 @@ rule one_compare:
 # currently the output is a tar gz file with prefix specified by "deliverable" in config file
 # it can only run after report.html file is created
 
-rule deliverable:
-    input: "report.html"
-    output:"deliverable.tar.gz"
+rule make_deliverable:
+    input: "report.html", "expression/expression.xlsx", "diff_expr/differential_expression.xlsx"
+    output: "mRNAseq_Analysis.zip"
+    log: "tmp/pipeline_log/make_deliverable.log"
     params:
-        temp_dir = "tmp/mRNAseq_analysis",
-        mem="4G"
-    log: "tmp/shell_log/deliverable_packing.log"
-    # message:
-    #    "#  Copy / move results to delivery folder"
-    shell:
-        """
-        for f in alignments expression diff_expr QC_graphs report; do
-            mkdir -p {params.temp_dir}/$f
+        mem="4G",
+        directory = "mRNAseq_Analysis"
+    shell: """
+        mkdir -p {params.directory}/report
+        mkdir -p {params.directory}/alignment
+        # link all delivery files except alignments/*_aligned_genome.*. alingment will be moved by deliver.sh
+        for fn in report/* report.html; do
+            if [[ -d $fn ]]; then
+                for fnn in $fn/*; do
+                    # make directory for archiving
+                    [[ -d {params.directory}/$fn ]] || mkdir -p {params.directory}/$fn
+                    ln -s `readlink -e $fnn` {params.directory}/$fnn
+                done
+            else
+                ln -s `readlink -e $fn` {params.directory}/$fn
+            fi
         done
-       
-        # link all delivery files except alignments/*_aligned_genome.*, which will be moved by deliver.sh
-        for fn in expression/*_table.txt diff_expr/*gene*.txt QC_graphs/*.png report/* report.html; do
-            ln -s `readlink -e $fn` {params.temp_dir}/$fn
-        done
+
+        ln -s `readlink -e expression/expression.xlsx` {params.directory}/expression.xlsx
+        ln -s `readlink -e diff_expr/differential_expression.xlsx` {params.directory}/differential_expression.xlsx
 
         # compress the folder
-        cd `dirname {params.temp_dir}`
-        tar -hczf {w_dir}/{output} `basename {params.temp_dir}`
-        cd -
-
-        rm -r {params.temp_dir}
-        """
-rule deliver:
-    input: rules.deliverable.output
-    params:
-        dest = config["delivery"]
-    shell:"""
-        if [[ ${params.dest} == *.tar.gz ]]  # delivery is a file
-        then
-            dest_dir=`dirname {params.dest}`
-            dest_file=`basename {params.dest}`
-        else
-            dest_dir={params.dest}
-            dest_file="mRNAseq_Analysis.tar.gz"
-        fi
-
-        [ ! -d $dest_dir ] && mkdir -p $dest_dir
-        mv {input} $dest_dir/$dest_file
-
-        [ ! -d $dest_dir/alignments ] && mkdir -p $dest_dir/alignments
-        for fn in alignments/*_aligned_genome.*; do
-            echo "moving file: $fn ..."
-            mv $fn $dest_dir/alignments  # move the file to the delivery folder
-            echo "file - $fn - has been moved. Save a symbolic link"
-            ln -s $dest_dir/alignments/`basename $fn` $fn      # make a symbolic link in the original place
-        done
-
-        # Change file permission"
-        chgrp -R "BIOTECH\\brcdownloaders" $dest_dir  # update the group to allow user download previllege
+        zip -r {output} {params.directory}
+        rm -rf {params.directory}
 
     """
+
+#rule deliver:
+#    input: rules.deliverable.output
+#    params:
+#        dest = config["delivery"]
+#    shell:"""
+#        if [[ ${params.dest} == *.tar.gz ]]  # delivery is a file
+#        then
+#            dest_dir=`dirname {params.dest}`
+#            dest_file=`basename {params.dest}`
+#        else
+#            dest_dir={params.dest}
+#            dest_file="mRNAseq_Analysis.tar.gz"
+#        fi
+#
+#        [ ! -d $dest_dir ] && mkdir -p $dest_dir
+#        mv {input} $dest_dir/$dest_file
+#
+#        [ ! -d $dest_dir/alignments ] && mkdir -p $dest_dir/alignments
+#        for fn in alignments/*_aligned_genome.*; do
+#            echo "moving file: $fn ..."
+#            mv $fn $dest_dir/alignments  # move the file to the delivery folder
+#            echo "file - $fn - has been moved. Save a symbolic link"
+#            ln -s $dest_dir/alignments/`basename $fn` $fn      # make a symbolic link in the original place
+#        done
+#
+#        # Change file permission"
+#        chgrp -R "BIOTECH\\brcdownloaders" $dest_dir  # update the group to allow user download previllege
+#
+#    """
 
 ##### remove #####
 rule remove:

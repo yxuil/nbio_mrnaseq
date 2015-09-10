@@ -164,6 +164,8 @@ div.tabs {
   line-height: 1;		/* Easier to calculate with */
   z-index: 0}			/* So that we can put other things behind */
 div.tabs > div {
+    overflow-x: scroll;
+    overflow-y: scroll;
   display: inline}		/* We want the buttons all on one line */
 div.tabs > div > a {
   color: black;			/* Looks more like a button than a link */
@@ -171,6 +173,7 @@ div.tabs > div > a {
   padding: 0.2em;		/* Some breathing space */
   border: 0.1em outset #CCC;	    /* Make it look like a button */
   border-bottom: 0.1em solid #DDD} /* Visually connect tab and tab body */
+
 div.tabs > div:not(:target) > a {
   border-bottom: none;		/* Make the bottom border disappear */
   background: #AAA}		    /* Inactive tabs are dark gray */

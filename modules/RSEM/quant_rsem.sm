@@ -109,11 +109,11 @@ rule rsem_bam:
     # # PROGRAM: rsem-calculate-expression
     # """
     shell: """
-            {RSEM}/rsem-calculate-expression {params.pair_option} --bam {input.bam} --no-bam-output -p {threads} {params.ref} {params.prefix}
+            {RSEM}/rsem-calculate-expression {params.pair_option} --bam {input.bam} --keep-intermediate-files --no-bam-output -p {threads} {params.ref} {params.prefix}
             """
 
 rule rsem_exp_matrix:
-    input: lambda wc: ["expression/{s}_{f}_table.txt".format(s=sample, f=wc.feature) for sample in \
+    input: lambda wc: ["tmp/rsem_estimate/{s}_{f}_table.txt".format(s=sample, f=wc.feature) for sample in \
                        config["treatments"][wc.exp] + config["treatments"][wc.ctrl] ]
     output: "expression/{exp}_vs_{ctrl}.{feature, gene|isoform}.readcounts.txt"
     log: "tmp/shell_log/{exp}_vs_{ctrl}.{feature}_cntMat.log"
@@ -133,7 +133,7 @@ rule rsem_exp_matrix:
 
 rule mv_expression:
     input:  "tmp/rsem_estimate/{sample}.{feature}s.results"
-    output: "expression/{sample}_{feature, gene|isoform}_table.txt"
+    output: "tmp/rsem_estimate/{sample}_{feature, gene|isoform}_table.txt"
     log: "tmp/shell_log/rsem_estimate_{sample}.log"
     params:
         mem = "1G"
@@ -145,26 +145,33 @@ rule mv_expression:
 #    """
     shell: "mv {input} {output}"
 
-rsem_write_exp = srcdir("quant_rsem_write_expTable.py")
 rule expression_table:
-    input: ["expression/%s_{feature}_table.txt" % (sample,) for sample in SAMPLES]
+    input: ["tmp/rsem_estimate/%s_{feature}_table.txt" % (sample,) for sample in SAMPLES]
     output: ["expression/{feature, gene|isoform}_%s_table.txt" % (measure,) for measure in ["FPKM", "TPM", "count"] ]
     log: "tmp/shell_log/merge_rsem_{feature}_expression.log"
     message: """\n##### merge all sample {wildcards.feature} expression to count, TPM, and FPKM tables
     # rule: expression_table
     # INPUT:   {input}
     # OUTPUT:  {output}
-    # PROGRAM: quant_rsem_write_expTable.py
+    # PROGRAM: python
     """
     params:
         mem = "1G"
-    shell: """
-        {rsem_write_exp} {config_fn} {wildcards.feature}
-        """
+
+    run:
+        import pandas as pd
+        exp_table = { "expected_count": pd.DataFrame(), "TPM": pd.DataFrame(), "FPKM": pd.DataFrame() }
+        for sample, exp_fn in zip(SAMPLES, list(input)):
+            m = pd.read_table(exp_fn, index_col=[0])
+            for measure in exp_table.keys():
+                exp_table[measure][sample] = m[measure]
+
+        for measure, o_fn in zip(["FPKM", "TPM", "expected_count"], list(output)):
+            exp_table[measure].to_csv(o_fn, sep="\t")
 
 rule report_rsem_expression:
     input: expand("expression/{feature}_{measure}_table.txt", feature = config["features"], measure = ["FPKM", "TPM", "count"])
-    output: "expression/exp_report.html"
+    output: html = "expression/exp_report.html", xls = "expression/expression.xlsx"
     log: "tmp/shell_log/exp_report.log"
     # message: "#   merge all sample {wildcards.feature} expression to {output}"
     params:
@@ -172,6 +179,24 @@ rule report_rsem_expression:
     run:
         import pandas as pd
         from jinja2 import Template
+        # save to xlsx file
+        file_list = list(input)
+        xls_writer = pd.ExcelWriter(output.xls, engine="xlsxwriter")
+        workbook = xls_writer.book
+        float_fmt = workbook.add_format({'num_format': '0.00'})
+        for fn in file_list:
+            sh_name = fn.lstrip("expression/").rstrip("_table.txt").replace("_", " ")
+            df = pd.read_table(fn)
+            number_rows = len(df.index)
+            number_cols = len(df.columns)
+            df.to_excel(xls_writer, startrow=1, index=False, sheet_name=sh_name)
+            worksheet = xls_writer.sheets[sh_name]
+            worksheet.set_header("")
+            # 3 digits
+            worksheet.set_column('B:ZZ', 12, float_fmt)
+        xls_writer.save()
+
+        # HTML report
         labels = list(map(lambda x: " ".join(x.split("/")[1].split("_")[:2]), input))
         grid_js, gt_divs = table_to_html(list(input))
 
@@ -192,7 +217,7 @@ rule report_rsem_expression:
         # make the first table checked
         checked =[' checked="checked"'] + ['']*(len(gt_divs)-1)
         html_str = html_template.render(labeled_gt=zip(labels, gt_divs), grid_js=grid_js)
-        with open(str(output), 'w') as f_out:
+        with open(str(output.html), 'w') as f_out:
             f_out.write(html_str)
 
 
@@ -227,5 +252,4 @@ rule rsem_fastq:
 
 
 rule expression:
-    input: expand("expression/{sample}_{feature}_table.txt", sample = SAMPLES, feature = config["features"]),
-            expand("expression/{feature}_{measure}_table.txt", feature = config["features"], measure = ["FPKM", "TPM", "count"])
+    input: "expression/expression.xlsx"

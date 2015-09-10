@@ -13,7 +13,7 @@
 </div>
 <hr>
     {{ expr_html }}
-    <div>* Tab delimited gene expression files are in folder `expression`.</div>
+    <div margin-left="2em">* Gene expression tables are in the folder.</div>
 <hr>
 
 <div>
@@ -24,15 +24,11 @@
     length in a sample, which can be calculated as
     </p>
     <p>l_bar = \sum_i TPM_i / 10^6 * effective_length_i (i goes through every transcript),</p>
-    <p>
-        <math style="font-family:'Times New Roman'" xmlns="http://www.w3.org/TR/MathML3/"><mover><mi>l</mi><mo>&#175;</mo></mover><mo>=</mo><msubsup><mo>&#8721;</mo><mi>i</mi><mi>n</mi></msubsup><mfrac><mrow><mi>T</mi><mi>P</mi><msub><mi>M</mi><mi>i</mi></msub></mrow><mrow><mi>l</mi><mi>e</mi><mi>n</mi><mi>g</mi><mi>t</mi><msub><mi>h</mi><mi>i</mi></msub><mo>&#215;</mo><msup><mn>10</mn><mn>6</mn></msup></mrow></mfrac></math>
-    </p>
+
     <p>
     the following equation is hold:
     </p>
     <p>FPKM_i = 10^3 / l_bar * TPM_i.</p>
-    <p> <math style="font-family:'Times New Roman'" xmlns="http://www.w3.org/TR/MathML3/"><mi>F</mi><mi>P</mi><mi>K</mi><msub><mi>M</mi><mi>i</mi></msub><mo>=</mo><mi>T</mi><mi>P</mi><msub><mi>M</mi><mi>i</mi></msub><mo>&#215;</mo><mfrac><msup><mn>10</mn><mn>3</mn></msup><mover><mi>l</mi><mo>&#175;</mo></mover></mfrac></math>
-    </p>
     <p>
     'count' is the sum of the posterior probability of each read comes from this transcript over all reads.
     Because 1) each read aligning to this transcript has a probability of being generated from background noise;

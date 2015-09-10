@@ -11,11 +11,11 @@ def qc_alignment(samples, output):
 
     qc_table = pd.DataFrame()
     qc_html  = pd.DataFrame()
-    graphs = pd.Series(['../QC_graphs/{}_geneboday_coverage.png',
-                        '../QC_graphs/{}_junction_satuation.png',
-                        '../QC_graphs/{}_splice_junction.png',
-                        '../QC_graphs/{}_inner_distance.png',
-                        '../QC_graphs/{}_read_dupRate.png'],
+    graphs = pd.Series(['QC_graphs/{}_geneboday_coverage.png',
+                        'QC_graphs/{}_junction_satuation.png',
+                        'QC_graphs/{}_splice_junction.png',
+                        'QC_graphs/{}_inner_distance.png',
+                        'QC_graphs/{}_read_dupRate.png'],
                 index = ["Gene Body Coverage",
                          "Junction Saturation",
                          "Splicing Junction",

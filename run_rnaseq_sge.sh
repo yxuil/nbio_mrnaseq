@@ -15,7 +15,7 @@ USAGE="Usage: run_rnaseq_sge.sh run_config_file [-c \"qsub_command\"] [snakemake
              $exe  config_file -n -p
                => Dont run pipeline; just print out shell command "
 
-qsub_default="qsub -V -cwd -S /bin/bash -j y -b y -o {log} -l vf={params.mem} -q all.q"
+qsub_default="qsub -V -cwd -S /bin/bash -j y -b y -o {log} -l vf={params.mem} -q all.q  -m abe -M liu@biotech.wisc.edu"
 
 {
 CMD=`echo $0 | sed -e 's/^.*\///'`

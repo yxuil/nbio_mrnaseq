@@ -65,7 +65,8 @@ edgeR = """
         fit <- glmFit(y, design)
         lrt <- glmLRT(fit)
         # top genes
-        de_table = format(topTags(lrt, n=Inf, sort.by="PValue"), digit = 2)
+        de_table=topTags(lrt, n=Inf, sort.by="PValue")
+#        de_table = format(de_table, digit = 3)
         write.table(de_table, file="{prefix}.diffexpr.txt", sep = '\t', row.names=FALSE,na='')
         # num of de genes summary
         de <- decideTestsDGE(lrt)
@@ -142,12 +143,46 @@ rule report_edger:
                     for exp, ctrl in zip(expGrp_lst, ctrlGrp_lst) \
                     for feature in config["features"] \
                     for table in ['diffexpr', 'onlyDE']]
-    output: html="diff_expr/de_report.html", txt = "diff_expr/de_report.txt"
+    output: html="diff_expr/de_report.html", txt = "diff_expr/de_report.txt", xls = "diff_expr/differential_expression.xlsx"
+    log: "tmp/pipeline_log/report_edger.log"
     params:
         mem = "8G"
     run:
         from jinja2 import Template
         import pandas as pd
+
+        # make xlsx file to save all diff gene tables
+        xls_writer = pd.ExcelWriter(output.xls, engine="xlsxwriter")
+        workbook = xls_writer.book
+        # Add a format. Green fill with dark green text.
+        under_fmt = workbook.add_format({'bg_color': '#C6EFCE',
+                                       'font_color': '#006100'})
+        float_fmt = workbook.add_format({'num_format': '0.000'})
+        for condition1, condition2 in zip(expGrp_lst, ctrlGrp_lst):
+          for ftr in config["features"]:
+            fn = "diff_expr/{}_vs_{}.{}.diffexpr.txt".format(condition1, condition2, ftr)
+            df = pd.read_table(fn)
+            number_rows = len(df.index)
+            # sheet name is no more than 31 char
+            compare_name = "{} - {}".format(condition1, condition2)
+            sh_name = compare_name + " " + ftr if len(compare_name) < 30 - len(ftr) else compare_name[:28-len(ftr)]+"..."+ftr
+            df.to_excel(xls_writer, startrow=1, index=False, sheet_name=sh_name)
+            worksheet = xls_writer.sheets[sh_name]
+            worksheet.set_header("")
+            # 3 digits
+            worksheet.set_column('B:F', 12, float_fmt)
+            # highlight FDR
+            worksheet.conditional_format("F2:F{}".format(number_rows +1),
+                                         {'type': 'cell',
+                                             'criteria': '<',
+                                             'value': 0.05,
+                                             'format': under_fmt})
+            # add filter
+            worksheet.autofilter('B1:B{}'.format(number_rows +1)) # logFC
+            worksheet.autofilter('F1:F{}'.format(number_rows +1)) # FDR
+        xls_writer.save()
+
+        # diff gene summaries
         header = "Condition1,Replicates,Condition2,Replicates,Total Expressed Genes,DE Genes".split(',')
         table_content  = []
 
@@ -205,11 +240,11 @@ rule report_edger:
             <div id="de-summary">
             {}
             </div>
+            <hr></hr>
             {}
             """.format(summary_html, de_html) )
 
 
 
 rule diffexpr:
-    input: ["diff_expr/{exp}_vs_{ctrl}.{feature}.onlyDE.txt".format(exp=exp,ctrl=ctrl,feature=feature)  \
-                    for exp, ctrl in zip(expGrp_lst, ctrlGrp_lst)  for feature in config["features"] ]
+    input: "diff_expr/differential_expression.xlsx"

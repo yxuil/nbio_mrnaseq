@@ -46,11 +46,11 @@ rule trim_paired:
         for r1_fname, r2_fname in zip(input.r1, input.r2):
             shell( "{SKEWER} -x AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC "
                    "-y AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT -q 20 "
-                   "-k 15 -l 25 -t {threads} -o {params.prefix} {r1_fname} {r2_fname}")
-            shell("cat {params.prefix}-pair1.fastq >> {params.prefix}_R1.fq;"
-                  "cat {params.prefix}-pair2.fastq >> {params.prefix}_R2.fq")
-            shell("cat {params.prefix}.log >> {params.log}")
-            shell("rm  {params.prefix}-pair?.fastq {params.prefix}.log")
+                   "-k 15 -l 25 -t {threads} -o {params.prefix} {r1_fname} {r2_fname}\n"
+                   "cat {params.prefix}-pair1.fastq >> {params.prefix}_R1.fq\n"
+                  "cat {params.prefix}-pair2.fastq >> {params.prefix}_R2.fq\n"
+                  "cat {params.prefix}.log >> {params.log}\n"
+                  "rm  {params.prefix}-pair?.fastq {params.prefix}.log")
         shell("gzip  {params.prefix}_R1.fq; gzip  {params.prefix}_R2.fq")
 
 trim_report = srcdir("trim_report.py")

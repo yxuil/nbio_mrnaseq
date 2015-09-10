@@ -13,7 +13,7 @@ rule versions:
 curdir = srcdir(".")
 def report_input(wc):
     required_input = [ "trimmed_fq/trim_stat.html",
-                       "QC_graphs/qc_table.html",
+                       "report/QC_graphs/qc_table.html",
                        "alignments/alignment_stat.html",
                        "expression/exp_report.html",
                        "diff_expr/de_report.html",

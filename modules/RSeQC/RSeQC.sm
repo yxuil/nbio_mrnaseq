@@ -22,7 +22,7 @@ rule RSeQC_refBED:
 rule junc_saturation:
     input: bam="alignments/{sample}_aligned_genome.bam",
            bed="tmp/rseqc/genes.bed"
-    output: "QC_graphs/{sample}_junction_satuation.png"
+    output: "report/QC_graphs/{sample}_junction_satuation.png"
     params: prefix="tmp/rseqc/{sample}", mem="1G"
     log: "tmp/shell_log/qc_junc_saturation_{sample}.log"
     message: "# Plot sample {wildcards.sample} junction saturation graph"
@@ -38,7 +38,7 @@ rule genebody_coverage:
     input: bam="alignments/{sample}_aligned_genome.bam",
            bai="alignments/{sample}_aligned_genome.bam.bai",
            bed="tmp/rseqc/genes.bed"
-    output: "QC_graphs/{sample}_geneboday_coverage.png"
+    output: "report/QC_graphs/{sample}_geneboday_coverage.png"
     params: prefix="tmp/rseqc/{sample}", mem="1G"
     log: "tmp/shell_log/qc_genebody_coverage_{sample}.log"
     message: "# Plot sample {wildcards.sample} genebody coverage graph"
@@ -52,7 +52,7 @@ rule genebody_coverage:
 rule splice_junction:
     input: bam="alignments/{sample}_aligned_genome.bam",
            bed="tmp/rseqc/genes.bed"
-    output: "QC_graphs/{sample}_splice_events.png","QC_graphs/{sample}_splice_junction.png"
+    output: "report/QC_graphs/{sample}_splice_events.png","report/QC_graphs/{sample}_splice_junction.png"
     params: prefix="tmp/rseqc/{sample}", mem="1G"
     log: "tmp/shell_log/qc_splice_junction_{sample}.log"
     message: "# Plot sample {wildcards.sample} junction annotation graph"
@@ -67,7 +67,7 @@ rule splice_junction:
 rule inner_distance:
     input: bam="alignments/{sample}_aligned_genome.bam",
            bed="tmp/rseqc/genes.bed"
-    output: "QC_graphs/{sample}_inner_distance.png"
+    output: "report/QC_graphs/{sample}_inner_distance.png"
     params: prefix="tmp/rseqc/{sample}", mem="1G"
     log: "tmp/shell_log/qc_inner_distance_{sample}.log"
     message: "# Plot sample {wildcards.sample} paired end reads inner distance distribution"
@@ -84,7 +84,7 @@ rule inner_distance:
 
 rule read_duplication:
     input: bam="alignments/{sample}_aligned_genome.bam"
-    output: "QC_graphs/{sample}_read_dupRate.png"
+    output: "report/QC_graphs/{sample}_read_dupRate.png"
     params: prefix="tmp/rseqc/{sample}", mem="1G"
     log: "tmp/shell_log/qc_read_dupRate_{sample}.log"
     message: "# Plot sample {wildcards.sample} read duplication rate graph"
@@ -98,7 +98,7 @@ rule read_duplication:
 rule read_distribution:
     input: bam="alignments/{sample}_aligned_genome.bam",
            bed="tmp/rseqc/genes.bed"
-    output: "QC_graphs/{sample}_read_distr.txt"
+    output: "report/QC_graphs/{sample}_read_distr.txt"
     log: "tmp/shell_log/qc_read_distribution_{sample}.log"
     message: "# Calculate sample {wildcards.sample} read distribution"
     shell: """
@@ -123,11 +123,11 @@ rule read_distribution:
 
 rseqc_report = srcdir("RSeQC_report.py")
 rule QC_report:
-    input: expand("QC_graphs/{sample}_{graph}.png", sample=SAMPLES, graph=["junction_satuation",\
+    input: expand("report/QC_graphs/{sample}_{graph}.png", sample=SAMPLES, graph=["junction_satuation",\
                      "geneboday_coverage", "splice_junction", "inner_distance", "read_dupRate"] )
-    output: "QC_graphs/qc_table.html", "QC_graphs/qc_table.txt"
+    output: "report/QC_graphs/qc_table.html", "report/QC_graphs/qc_table.txt"
     log: "tmp/shell_log/qc_report.log"
-    params: mem="1G", o_prefix="QC_graphs/qc_table"
+    params: mem="1G", o_prefix="report/QC_graphs/qc_table"
     shell: """
         {rseqc_report} {config_fn} {params.o_prefix}
         """

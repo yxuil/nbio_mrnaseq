@@ -21,8 +21,8 @@ def generate_report(config):
     trim_html = open("trimmed_fq/trim_stat.html").read() \
         if os.path.isfile("trimmed_fq/trim_stat.html") \
         else "Reads trim report is not available."
-    bam_qc_html = open("QC_graphs/qc_table.html").read() \
-        if os.path.isfile("QC_graphs/qc_table.html") \
+    bam_qc_html = open("report/QC_graphs/qc_table.html").read() \
+        if os.path.isfile("report/QC_graphs/qc_table.html") \
         else "mRNAseq Alignment quality report is not available."
     alignment_html = open("alignments/alignment_stat.html").read()\
         if os.path.isfile("alignments/alignment_stat.html") \
