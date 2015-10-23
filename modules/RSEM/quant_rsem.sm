@@ -17,8 +17,9 @@ RSEM_IDX_DIR = os.path.join(ref_base, "RSEMIndex")
 #        RSEM_IDX_DIR = os.path.join("tmp", "ref", "RSEMIndex")
 #        break
 
-##### INDEX #####
+localrules: mv_expression
 
+##### INDEX #####
 
 def clean_GTF(gtf_fn, output_fn):
     valid_gtf_records = {}
@@ -226,11 +227,9 @@ rule report_rsem_expression:
 rule rsem_fastq:
     input:
         ref = RSEM_IDX,
-        r1 = lambda wc: [ "trimmed_fq/{}-R1.fq.gz".format(wc.sample)]
-    output: "rsem_estimate/{sample}.gene.results",
-            "rsem_estimate/{sample}.isoform.results",
-            "rsem_estimate/{sample}.transcript.sorted.bam",
-            "rsem_estimate/{sample}.genome.sorted.bam"
+        reads = lambda wc: ["trimmed_fq/{}_R1.fq.gz".format(wc.sample), "trimmed_fq/{}_R2.fq.gz".format(wc.sample)] \
+                                if isPairedReads(wc.sample) else "trimmed_fq/{}.fq.gz".format(wc.sample)
+    output: "tmp/rsem_estimate/{sample}.genes.results", "tmp/rsem_estimate/{sample}.isoforms.results"
     threads: 8
     log: "tmp/shell_log/rsem_calc_expr_{wc.sample}.log"
     params:
@@ -243,10 +242,16 @@ rule rsem_fastq:
     # PROGRAM: rsem-calculate-expression
     """
     run:
-        read1_lst = ",".join(input.r1)
-        pair_option, read2_lst = ("--paired-end", ",".join(input.r1).replace("R1", "R2") ) \
-                                  if isPairedReads(wildcards.sample) else ("", "")
-        shell("{RSEM}/rsem-calculate-expression -p {threads} --output-genome-bam --bowtie-path {BOWTIE} "\
+        if isPairedReads(wildcards.sample):
+            read1_lst = ",".join([r for r in input.reads if "_R1.fq.gz" in r])
+            read2_lst = read1_lst.replace("_R1.fq.gz", "R2.fq.gz")
+            pair_option = "--paired-end"
+        else:
+            read1_lst = ",".join(reads)
+            read2_lst = ""
+            pair_option = ""
+        shell("set -x;"\
+              "{RSEM}/rsem-calculate-expression -p {threads} --output-genome-bam --bowtie-path {BOWTIE} "\
               "{pair_option} {read1_lst} {read2_lst} {params.ref} rsem_estimate/{wildcards.sample};")
 
 

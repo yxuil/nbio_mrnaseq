@@ -1,14 +1,37 @@
+localrules: versions,report
+
 rule versions:
-    output: "tmp/software_version.txt"
+    output: "tmp/software_version.html"
     params: mem = "1G"
-    shell: """
-        {SKEWER} -v | head -1 > {output}
-        {STAR} --version | head -1 >> {output}
-        {SAMTOOLS} 2>&1 | head -3 | tail -1 >> {output}
-        {RSEM}/rsem-calculate-expression -v  | head -1 >> {output}
-        {BOWTIE}/bowtie --version  | head -1 >> {output}
-        {FEATCOUNT}/featureCounts -v 2>&1 | head -1 >> {output}
-    """
+    run:
+        import re
+        from rpy2 import robjects
+        from collections import OrderedDict
+        import pandas as pd
+
+        softwares = OrderedDict()
+
+        skewer_ver =  subprocess.check_output('echo `/mnt/software/skewer -v`', shell=True)
+        softwares["skewer"]=filter(None, re.split("[: ]+", skewer_ver))[2]
+        star_ver = subprocess.check_output("/mnt/software/STAR-dir/STAR-2.4.2a/STAR --version", stderr=subprocess.STDOUT, shell=True)
+        softwares["STAR"] = star_ver.split("_")[1]
+        rsem_ver = subprocess.check_output("/mnt/software/rsem-dir/rsem-1.2.22/rsem-calculate-expression -version", shell=True)
+        softwares["RSEM"] = rsem_ver.split()[-1]
+
+        version = robjects.r("""
+        function (p) {
+             paste(packageVersion(p),collapse=".")
+        }""")
+        softwares["R"] = list(version("base"))[0]
+        softwares["EdgeR"] = list(version("edgeR"))[0]
+        softwares["EBSeq"] = list(version("EBSeq"))[0]
+        softwares["Pipeline"] = 'r20151008'
+
+        softwares_df = pd.DataFrame(softwares, columns=["Software", "Version"])
+        softwares_html = softwares_df.to_html(classes="brc", escape=False, index=False)
+        with open(output) as f_out:
+            f_out.write(softwares_html)
+
 
 curdir = srcdir(".")
 def report_input(wc):
@@ -17,7 +40,7 @@ def report_input(wc):
                        "alignments/alignment_stat.html",
                        "expression/exp_report.html",
                        "diff_expr/de_report.html",
-                       "tmp/software_version.txt" ]
+                       "tmp/software_version.html" ]
     if "pathway_exe" in config:
         required_input.append("pathway/pathway_report.html")
 

@@ -6,5 +6,23 @@
                 <strong><a id=BAM_QC name=BAM_QC>mRNAseq QC</a></strong>
                 <p></p>
                 {{bam_qc_html}}
+                <dl>
+                  <dt>Gene Body Coverage</dt>
+                  <dd>The plot shows the relative abundance of sequencing read across the gene length from 5' to 3'.
+                      It is a good indicator that whether reads have bias toward one or both ends, which could be
+                      caused by RNA degradation.</dd>
+                  <dt>Junction Saturation</dt>
+                  <dd>The curves show the diversity of annotated and noval splic junctions. The former reveals if there
+                      are diverse RNA population in the sequencing sample, thus if the sample has enough depth. The later
+                      indicates how many new, un-annotated junctions are revealed by increasing number of sequencing reads.</dd>
+                    <dt>Splicing Junction</dt>
+                    <dd>The pie chart shows the percentage of annotated and novel junctions presented in the sample.</dd>
+                    <dt>ReadPair Inner Distance</dt>
+                    <dd>The histogram shows the distribution of inner distance (between two closest ends) of the reads
+                        pairs estimated from the alignment. The accurate inner distance cannot be estimated from the
+                        single end sequencing data</dd>
+                    <dt>Read Dupliction</dt>
+                    <dd>The plot shows the read duplication level and theoretical duplication level</dd>
+                </dl>
             </article>
 {% endblock %}

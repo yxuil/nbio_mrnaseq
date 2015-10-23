@@ -28,7 +28,7 @@ rule trim_single:
 rule trim_paired:
     input:
         r1 = lambda wc: [ os.path.join(data_dir, f) for f in config['samples'][wc.sample][0::2] ], # odd elements
-        r2 = lambda wc: [ os.path.join(data_dir, f) for f in config['samples'][wc.sample][1::2] ] # even elements 
+        r2 = lambda wc: [ os.path.join(data_dir, f) for f in config['samples'][wc.sample][1::2] ] # even elements
     output: "trimmed_fq/{sample}_R1.fq.gz", "trimmed_fq/{sample}_R2.fq.gz", "tmp/pipeline_log/{sample}_trim.log"
     log: "tmp/shell_log/{sample}_trim.log"
     params:

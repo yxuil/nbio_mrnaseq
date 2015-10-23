@@ -4,6 +4,9 @@ deffierential expression module
 input: gene count table
 output: differential gene expression table
 """
+
+localrules: diffexpr
+
 from snakemake.utils import R
 import sys
 
@@ -49,7 +52,7 @@ edgeR = """
         # MDS
         cols <- brewer.pal(8, "Set1")
         colcode <- cols[as.numeric(treatments)]
-        CairoPNG("{prefix}.mds.png")
+        CairoPNG("{prefix}.MDS.png")
         plotMDS(y,
                 pch = as.numeric(treatments),
                 col = colcode,
@@ -180,6 +183,12 @@ rule report_edger:
             # add filter
             worksheet.autofilter('B1:B{}'.format(number_rows +1)) # logFC
             worksheet.autofilter('F1:F{}'.format(number_rows +1)) # FDR
+
+            # add plots
+            worksheet.write('H1', 'MA plot - Folder change vs average expression')
+            worksheet.insert_image('H2', 'tmp/edger/{}_vs_{}.{}.FC-CPM.png'.format(condition1, condition2, ftr), {'x_offset': 15, 'y_offset': 10})
+            worksheet.write('H30', 'MDS plot - similarity between samples')
+            worksheet.insert_image('H31', 'tmp/edger/{}_vs_{}.{}.MDS.png'.format(condition1, condition2, ftr), {'x_offset': 15, 'y_offset': 10})
         xls_writer.save()
 
         # diff gene summaries
@@ -214,7 +223,6 @@ rule report_edger:
         summary_html = table_df.to_html(classes="brc", escape=False, index=False)
 
         # write gene table
-        grid_js, gt_divs = table_to_html(file_list)
 
         html_template = Template("""
         <div class=tabs>
@@ -232,6 +240,10 @@ rule report_edger:
         {{ grid_js }}
         """)
 
+        grid_js, gt_divs = table_to_html(file_list)
+        if type(gt_divs) == str:
+            # single element list
+            gt_divs = [gt_divs]
         de_html = html_template.render(labeled_gt=zip(expGrp_lst, ctrlGrp_lst, gt_divs), grid_js=grid_js)
 
         with open(output.html, 'w') as f_out:

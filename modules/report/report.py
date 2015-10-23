@@ -36,6 +36,9 @@ def generate_report(config):
     geneset_html  = open("pathway/pathway_report.html").read()\
         if os.path.isfile("pathway/pathway_report.html") \
         else "Pathway analysis was not ordered. Pathway report is not available "
+    versions_html  = open("tmp/software_version.html").read()\
+       if os.path.isfile("tmp/software_version.html") \
+       else "Software version information is not available"
     #_html  = open("").read()\
     #    if os.path.isfile \
     #    else ""

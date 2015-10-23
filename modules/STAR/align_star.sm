@@ -1,3 +1,4 @@
+localrules: mv_alignment,alignment
 
 read_length=100 # TODO add parameter in the config, then use int(config["read_length"]) - 1
 
