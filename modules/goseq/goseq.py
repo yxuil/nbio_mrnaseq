@@ -21,20 +21,27 @@ from docopt import docopt
 import pandas as pd
 import rpy2
 
+SIG_P = 0.25  # pvalue threshold for significant pathways
 PA_TABLES = ['KEGG_pathway', 'GO_Biological_Process', 'GO_Molecular_Function','GO_Cellular_Component']
 
-GOSEQ = """
+
+def writeRscript(input_file, genome, id_type, prefix, sig = SIG_P):
+    """
+    given a txt file with differentially expressed gene list, its genome, the ID used, perform GOseq
+    analysis and output result to a file sepcified by prefix.
+    """
+
+    GOSEQ = """
 sig_threshold = {sig}
 library(goseq)
 library(GO.db)
 library(KEGG.db)
 
-# all_genes = read.table("diff_expr/{comparison}.gene.diffexpr.txt", header=TRUE, sep='\\t', row.names=1)
-# de_genes = read.table("diff_expr/{comparison}.gene.onlyDE.txt", header=TRUE, sep='\\t', row.names=1)
-genes = read.table({de_file}, header=FALSE, sep='\\t', row.names=1)
-genes = as.integer(genes)
-# genes = as.integer( row.names(all_genes) %in% row.names(de_genes))
-# names(genes)=row.names(all_genes)
+all_genes = read.table("diff_expr/{comparison}.gene.diffexpr.txt", header=TRUE, sep='\\t', row.names=1)
+de_genes = read.table("diff_expr/{comparison}.gene.onlyDE.txt", header=TRUE, sep='\\t', row.names=1)
+
+genes = as.integer( row.names(all_genes) %in% row.names(de_genes))
+names(genes)=row.names(all_genes)
 
 # crate pwf table
 pwf=nullp(genes,"{genome}","{ID_type}", plot.fit=FALSE)
@@ -77,8 +84,15 @@ colnames(KEGG.sig) = c("KEGG ID", "Total Genes", "DE Genes", "Over Rep. FDR", "U
 write.table(KEGG.sig, '{prefix}.KEGG_pathway.txt', sep='\t', quote=F)
 
 """
+    rscript = GOSEQ.format(de_file = input_file,
+                    prefix=prefix,
+                    sig = sig,
+                    genome = genome,
+                    ID_type = id_type)
+    with open(f + ".goseq.R", 'w') as rscript_out:
+        rscript_out.write(rscript)
 
-
+def
 if __name__ == '__main__':
     args = docopt(__doc__)
 
@@ -89,14 +103,9 @@ if __name__ == '__main__':
     gs_id     = args["--id"]
     prefix    = args['--output']
     SIG_P     = args['--pvalue']
+
     for f in args['<FILE>']:
-        rscript = GOSEQ.format(de_file = f,
-                        prefix=prefix,
-                        sig = SIG_P,
-                        genome = gs_genome,
-                        ID_type = gs_id)
-        with open(f + ".goseq.R", 'w') as rscript_out:
-            rscript_out.write(rscript)
+        writeRscript(f, gs_genome, gs_id, prefix)
     #shell("Rscript {params.prefix}.goseq.R")
 
     xls_writer = pd.ExcelWriter(output.xls, engine="xlsxwriter")

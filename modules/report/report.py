@@ -13,6 +13,8 @@ def generate_report(config):
     outputDir= config.get("workdir", "")
     PIname = config.get("piname", "")
     description = config.get("project", "")
+    if type(description) == list:
+        description= " ".join(description) # join in case comma are in the description
     sample_num = len(config.get("samples", ""))
     organism = config.get("organism", "")
     ref = config.get("ref_base", "")
@@ -44,7 +46,7 @@ def generate_report(config):
     #    else ""
 
     env = Environment()
-    template_path = os.path.abspath(sys.path[0])
+    template_path = os.path.join(sys.path[0], "templates")
     env.loader = FileSystemLoader(template_path)
 
     pages = "workflow project readsdata alignment_stat alignment_QC expression diffexpr genesets versions".split()

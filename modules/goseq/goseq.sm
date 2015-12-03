@@ -1,59 +1,5 @@
-SIG_P = 0.25  # pvalue threshold for significant pathways
+cur_dir = srcdir('.')
 PA_TABLES = ['KEGG_pathway', 'GO_Biological_Process', 'GO_Molecular_Function','GO_Cellular_Component']
-
-GOSEQ = """
-sig_threshold = {sig}
-library(goseq)
-library(GO.db)
-library(KEGG.db)
-
-all_genes = read.table("diff_expr/{comparison}.gene.diffexpr.txt", header=TRUE, sep='\\t', row.names=1)
-de_genes = read.table("diff_expr/{comparison}.gene.onlyDE.txt", header=TRUE, sep='\\t', row.names=1)
-
-genes = as.integer( row.names(all_genes) %in% row.names(de_genes))
-names(genes)=row.names(all_genes)
-
-# crate pwf table
-pwf=nullp(genes,"{genome}","{ID_type}", plot.fit=FALSE)
-
-# GO analysis
-GO = goseq(pwf,"{genome}","{ID_type}")
-
-# adjust pvalue
-GO$over_represented_FDR = p.adjust(GO$over_represented_pvalue, method="BH")
-GO$under_represented_FDR = p.adjust(GO$under_represented_pvalue, method="BH")
-
-GO.sig=GO[GO$over_represented_FDR < sig_threshold | GO$under_represented_FDR < sig_threshold, ]
-GO.sig$defination <- sapply(GO.sig$category, function(x) Definition(GOTERM[[x]]) )
-
-GO.sig$over_represented_pvalue <- NULL
-GO.sig$under_represented_pvalue <- NULL
-
-o_ <- GO.sig[, c(1,3,2,6,7,4,8,5)]
-colnames(o_) = c("GO ID", "Total Genes", "DE Genes", "Over Rep. FDR", "Under Rep. FDR", "Pathway", "Description", "ontology")
- 
-# output
-write.table(o_[o_$ontology == "BP",], "{prefix}.GO_Biological_Process.txt", sep='\\t', quote=F)
-write.table(o_[o_$ontology == "MF",], "{prefix}.GO_Molecular_Function.txt", sep='\\t', quote=F)
-write.table(o_[o_$ontology == "CC",], "{prefix}.GO_Cellular_Component.txt", sep='\\t', quote=F)
-
-# KEGG analysis
-KEGG = goseq(pwf, "{genome}","{ID_type}", test.cats="KEGG")
-KEGG$over_represented_FDR = p.adjust(KEGG$over_represented_pvalue, method="BH")
-KEGG$under_represented_FDR = p.adjust(KEGG$under_represented_pvalue, method="BH")
-
-# Get pathway names for significant patways
-KEGG.sig = KEGG[KEGG$over_represented_FDR < sig_threshold | KEGG$under_represented_FDR < sig_threshold,]
-KEGG.sig$over_represented_pvalue <- NULL
-KEGG.sig$under_represented_pvalue <- NULL
-
-pathway = stack(mget(KEGG.sig$category, KEGGPATHID2NAME))
-
-KEGG.sig$pathway = pathway$values
-colnames(KEGG.sig) = c("KEGG ID", "Total Genes", "DE Genes", "Over Rep. FDR", "Under Rep. FDR", "Pathway Description")
-write.table(KEGG.sig, '{prefix}.KEGG_pathway.txt', sep='\t', quote=F)
-
-"""
 
 rule goseq:
     input: "diff_expr/{exp}_vs_{ctrl}.gene.diffexpr.txt", 
@@ -66,15 +12,16 @@ rule goseq:
         mem = "8G",
         comparison = "{exp}_vs_{ctrl}",
         prefix = "tmp/goseq/{exp}_vs_{ctrl}"
-    run:
-        rscript = GOSEQ.format(comparison = params.comparison,
-                                prefix=params.prefix,
-                                sig = SIG_P,
-                                genome = "hg19",
-                                ID_type = "geneSymbol")
-        with open(params.prefix + ".goseq.R", 'w') as rscript_out:
-            rscript_out.write(rscript)
-        shell("Rscript {params.prefix}.goseq.R")
+    shell:
+#        rscript = GOSEQ.format(comparison = params.comparison,
+#                                prefix=params.prefix,
+#                                sig = SIG_P,
+#                                genome = "hg19",
+#                                ID_type = "geneSymbol")
+#        with open(params.prefix + ".goseq.R", 'w') as rscript_out:
+#            rscript_out.write(rscript)
+        "{}/goseq.py --genome hsa --id ensembl --output {params.prefix} --pvalue {P_SIG}"
+        "Rscript {params.prefix}.goseq.R"
 
 #rule mv_goseq:
 #    input: "tmp/goseq/{exp}_vs_{ctrl}.{pa_table}.txt"
@@ -88,141 +35,10 @@ rule report_goseq:
                     for pa_table in PA_TABLES]
     output: html = "pathway/pathway_report.html", txt = "pathway/pathway_report.txt", xls="pathway/GeneSetEnrichment.xlsx"
     params: mem = "8G"
-    run:
-        from jinja2 import Template
-        import os
-        import pandas as pd
-
-        file_list = list(input)
-#        summarize how many pathways are enriched
-
-        table_content = []
-        for fn in file_list:
-            comp, pa_table = os.path.basename(fn).split('.')[:2]
-            comp     = comp.replace('_vs_', ' vs. ')
-            pa_table = pa_table.replace('_', ' ')
-
-            # count number of pathways been enriched
-            num_pa = open(fn).read().count('\n') - 1
-
-            # make table
-            row = [comp, pa_table, num_pa]
-            table_content.append(row)
-
-        # write DE summary table
-        table_df = pd.DataFrame(table_content, columns=["Comparison", "Pathways", "Enriched"])
-        table_df.to_csv(output.txt, sep="\t", index=False)
-
-        # get all txt files in one excel file
-        xls_writer = pd.ExcelWriter(output.xls, engine="xlsxwriter")
-        pd.read_table(output.txt).to_excel(xls_writer, index=False, sheet_name='Summary')
-
-        workbook = xls_writer.book
-        # Add a format. Light red fill with dark red text.
-        over_fmt = workbook.add_format({'bg_color': '#FFC7CE',
-                                       'font_color': '#9C0006'})
-        # Add a format. Green fill with dark green text.
-        under_fmt = workbook.add_format({'bg_color': '#C6EFCE',
-                                       'font_color': '#006100'})
-        float_fmt = workbook.add_format({'num_format': '0.000'})
-
-        for fn in file_list:
-            comp, pa_table = os.path.basename(fn).replace("_", " ").split('.')[:2]
-            sh_name = comp[:25] + ' ' + pa_table.replace("GO Biological Process", "GO BP")\
-                                            .replace("GO Cellular Component", "GO CC")\
-                                            .replace("GO Molecular Function", "GO MF")\
-                                            .replace("KEGG pathway","KEGG")
-
-            df = pd.read_table(fn)
-            number_rows = len(df.index)
-            df.to_excel(xls_writer, startrow=1, index=False, sheet_name=sh_name)
-
-            # format cells
-            worksheet = xls_writer.sheets[sh_name]
-            worksheet.set_header(comp + ' ' + pa_table )
-            worksheet.set_column('A:A', 12)
-            worksheet.set_column('F:F', 40)
-            worksheet.set_column('G:G', 100)
-            worksheet.set_column('D:E', 12, float_fmt)
-
-            worksheet.conditional_format("D3:D{}".format(number_rows +1),
-                                         {'type': 'cell',
-                                             'criteria': '<',
-                                             'value': 0.05,
-                                             'format': over_fmt})
-            worksheet.conditional_format("E3:E{}".format(number_rows +1),
-                                         {'type': 'cell',
-                                             'criteria': '<',
-                                             'value': 0.05,
-                                             'format': under_fmt})
-        xls_writer.save()
-
-
-        # add links to the gene table
-        table_df['Enriched'] = '<a href="#tab-' + (table_df.index + 1).map(str) + '">' + table_df['Enriched'].map(str) +'</a>'
-        table_df = table_df.set_index(["Comparison", "Pathways"])
-        # make html table
-        summary_html = table_df.to_html(classes="brc", escape=False, index=True)
-
-        grid_js, pa_divs = table_to_html(file_list)
-        # The tabbed interface is templated from http://www.w3.org/Style/Examples/007/target.en.html#tab1
-        html_template = Template("""
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
-        <script>
-        $('#comppair', '#pathway').change(function(){
-            $('.tabs').hide();
-            $('#'+$('#comppair option:selected').val()+' '+$('#pathway option:selected').val()).show()
-        });
-        </script>
-
-        <form class="selector">
-            <select id="comppair">
-            {% for exp, ctrl in exp_ctrl %}
-                <option>{{ exp }}_vs_{{ ctrl }}</option>
-            {% endfor %}
-            </select>
-            <select id="pathway">
-            {% for pa in pa_table %}
-                <option>{{ pa }}</option>
-            {% endfor %}
-            </select>
-        </form>
-
-        {% for exp, ctrl, pa, tbl in exp_ctrl_tbl %}
-        <div id='{{ exp }}_vs_{{ ctrl }}_{{ pa }}' class='result'><a href="#tab-{{ loop.index }}">{{ exp }} vs. {{ ctrl }} {{ pa }}</a>
-            {{ exp }} vs. {{ ctrl }} {{ pa }} <br>
-            {{ tbl }}
-        </div>
-        {% endfor %}
-
-        <style>
-        .result {display:none;}
-        .result.active {display:block;}
-        </style>
-
-        <link rel="stylesheet" href="http://cdn.pydata.org/bokeh/release/bokeh-0.9.2.min.css" type="text/css" />
-        <script type="text/javascript" src="http://cdn.pydata.org/bokeh/release/bokeh-0.9.2.min.js"></script>
-
-        {{ grid_js }}
-
-        """)
-
-        exp_lst_rep = [ i for i in expGrp_lst for rep in range(len(PA_TABLES))] # repeat exp for # of pa_tables
-        ctrl_lst_rep = [ i for i in ctrlGrp_lst for rep in range(len(PA_TABLES))] # same for ctrl
-        pa_tbl_rep = [ i for rep in range(len(expGrp_lst)) for i in PA_TABLES]   # and for pa_tables
-
-        pa_html = html_template.render(exp_ctrl_tbl=zip(exp_lst_rep, ctrl_lst_rep, pa_tbl_rep, pa_divs),
-                                        grid_js=grid_js,
-                                        exp_ctrl = zip(expGrp_lst, ctrlGrp_lst),
-                                        pa_table=  PA_TABLES )
-        with open(output.html, 'w') as f_out:
-            #write out summary table
-            f_out.write("""
-            <div id="pa-summary">
-            {}
-            </div>
-            {}
-            """.format(summary_html, pa_html) )
+    # shell: "{}/goseq_report.py --html {input} {output.html}; "
+    #        "{}/goseq_report.py --txt {input} {output.txt}; "
+    #        "{}/goseq_report.py --xls {input} {output.xls}; "
+    shell: "{cur_dir}/report_goseq.py --html {output.html} --txt {output.txt} --xls {output.xls} {input}"
  
 rule run_goseq:
     input: ["pathway/{exp}_vs_{ctrl}.{pa_table}.txt".format(exp=exp,ctrl=ctrl, pa_table = pa_table)  \

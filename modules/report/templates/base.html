@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+        
+    <title>mRNAseq Data analysis - {% block title %}{% endblock %}</title>
+    <meta name="description" content="mRNAseq data analysis report - Xiaoyu Liu @ BRC, UWBC"/>
+                
+    <!-- Bootstrap core CSS -->
+    <link href="CSS/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Custom styles for this template -->
+    <link href="CSS/dashboard.css" rel="stylesheet">
+    <script src="JS/jquery.min.js"></script>
+    <script src="JS/custom.js"></script>
+
+  </head>
+    
+  <body>
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <a class="navbar-brand" href="#">mRNAseq Data Analysis Report</a>
+        </div>
+      </div>
+    </nav>
+        
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-sm-3 col-md-2 sidebar">
+          <ul class="nav nav-sidebar">
+            <li><h3 style="text-align: center">Analysis:</h3></li>
+            <br/>
+            {% block sidebar %}
+            {% endblock %}
+          </ul>
+        </div>
+
+        <div id="mainarea" class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+          {% block mainarea %}
+          {% endblock %}
+          <hr />
+          <p class="text-muted"> Please acknowledge BRC in your manuscript or presentation for the data analysis work. If you think our analysis contributes to your research intellectually please consider authorship for our bioinformaticians.</p>
+          <hr/>
+        </div>
+
+      </div><!-- row -->
+    </div><!-- container-fluid -->
+
+    <script src="JS/bootstrap.min.js"></script>
+    {% block scripts %}
+    {% endblock %}
+  </body>
+
+</html>

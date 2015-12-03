@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}project summary{% endblock %}
+{% block page %}project summary{% endblock %}
+{% block sidebar %}
+  <li><a href='workflow.html'>Workflow</a></li>
+  <li class="active"><a href='project.html'>Project summary</a></li>
+  <li><a href='readsdata.html'>Data</a></li>
+  <li><a href='alignment_stat.html'>Alignments</a></li>
+  <li><a href='alignment_QC.html'>Alignment QC</a></li>
+  <li><a href='expression.html'>Expression estimation</a></li>
+  <li><a href='diffexpr.html'>Differential expression</a></li>
+  <li><a href='genesets.html'>Pathway analysis</a></li>
+  <li><a href='versions.html'>Software</a></li>
+{% endblock %}
+{% block mainarea %}
+            <article class="result-content">
+                    <h1 class="page-header" style="text-align:center">Project Summary</h1>
+                    <table class="brc">
+                        <tr><th scope='row'>PI Name</th><td style="white-space:pre-wrap">{{PIname}}</td></tr>
+                        <tr><th scope='row'>Project Description</th><td style="white-space:pre-wrap">{{description}}</td></tr>
+                        <tr><th scope='row'>Sample</th><td style="white-space:pre-wrap">{{sample_num}}</td></tr>
+                        <tr><th scope='row'>Organism</th><td>{{organism}}</td></tr>
+                        <tr><th scope='row'>Reference Database</th><td>{{ref}}</td></tr>
+                        <tr><th scope='row'>Report Generation Date</th><td>{{report_time}}</td></tr>
+
+                    </table>
+            </article>
+{% endblock %}

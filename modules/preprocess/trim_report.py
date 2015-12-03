@@ -76,7 +76,7 @@ def trim_report(samples, output):
 
     sample_summary.to_csv( output + ".txt", sep="\t")
     with open ( output + ".html", 'w') as f_out:
-        f_out.write(sample_summary.to_html(classes="brc"))
+        f_out.write(sample_summary.to_html(classes="table table-bordered table-hover"))
 
 if __name__ == "__main__":
     import sys

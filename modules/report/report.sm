@@ -1,39 +1,13 @@
 localrules: versions,report
+curdir = srcdir(".")
 
 rule versions:
     output: "tmp/software_version.html"
     params: mem = "1G"
-    run:
-        import re
-        from rpy2 import robjects
-        from collections import OrderedDict
-        import pandas as pd
+    shell:"""
+        {curdir}/software_version.py {output}
+        """
 
-        softwares = OrderedDict()
-
-        skewer_ver =  subprocess.check_output('echo `/mnt/software/skewer -v`', shell=True)
-        softwares["skewer"]=filter(None, re.split("[: ]+", skewer_ver))[2]
-        star_ver = subprocess.check_output("/mnt/software/STAR-dir/STAR-2.4.2a/STAR --version", stderr=subprocess.STDOUT, shell=True)
-        softwares["STAR"] = star_ver.split("_")[1]
-        rsem_ver = subprocess.check_output("/mnt/software/rsem-dir/rsem-1.2.22/rsem-calculate-expression -version", shell=True)
-        softwares["RSEM"] = rsem_ver.split()[-1]
-
-        version = robjects.r("""
-        function (p) {
-             paste(packageVersion(p),collapse=".")
-        }""")
-        softwares["R"] = list(version("base"))[0]
-        softwares["EdgeR"] = list(version("edgeR"))[0]
-        softwares["EBSeq"] = list(version("EBSeq"))[0]
-        softwares["Pipeline"] = 'r20151008'
-
-        softwares_df = pd.DataFrame(softwares, columns=["Software", "Version"])
-        softwares_html = softwares_df.to_html(classes="brc", escape=False, index=False)
-        with open(output) as f_out:
-            f_out.write(softwares_html)
-
-
-curdir = srcdir(".")
 def report_input(wc):
     required_input = [ "trimmed_fq/trim_stat.html",
                        "report/QC_graphs/qc_table.html",
@@ -51,7 +25,7 @@ rule report:
     output:
         html = "report.html",
         project = "report/project.html",
-        css  = "report/CSS/report.css",
+        css  = "report/CSS/dashboard.css",
         png  = "report/workflow.png"
     log: "tmp/shell_log/report.log"
     params:
@@ -62,6 +36,6 @@ rule report:
         cp {curdir}/workflow.png {output.png}
         cp -r {curdir}/CSS {params.report_dir}
         cp -r {curdir}/JS {params.report_dir}
-        cp {curdir}/redirect.html {output.html}
+        cp {curdir}/templates/redirect.html {output.html}
         """
 

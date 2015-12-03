@@ -32,7 +32,7 @@ def qc_alignment(samples, output):
 
     pd.set_option('display.max_colwidth', -1)  # prevent to_html truncating string
     with open ( output + ".html", 'w') as f_out:
-        f_out.write( qc_html.T.to_html(classes="brc",  escape=False, ) )
+        f_out.write( qc_html.T.to_html(classes="table table-bordered table-hover",  escape=False, ) )
 
 if __name__ == "__main__":
 

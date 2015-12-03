@@ -42,7 +42,7 @@ if hash qsub 2>/dev/null; then  # check if qsub available
     config=$1
     shift              # get everything after the config file
     qsub -V -cwd -S /bin/bash -j y -b y -o pipeline.log -N runRNAseq -m abe -M liu@biotech.wisc.edu \
-       ${progPath}/run_rnaseq.sh $config --cluster-sync \"$qsub_default\" --jn s.\{rulename\}.\{jobid\} -w 45 -j 20 $@
+       ${progPath}/run_rnaseq.sh $config --cluster-sync \"$qsub_default\" --jn s.\{rulename\}.\{jobid\} -w 120 -j 20 $@
 #    ${progPath}/run_rnaseq.sh $config --drmaa " $DRMAA"  -w 30 -j 20 $@
 else
     # qsub not available

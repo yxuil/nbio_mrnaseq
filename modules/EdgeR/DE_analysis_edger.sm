@@ -7,82 +7,7 @@ output: differential gene expression table
 
 localrules: diffexpr
 
-from snakemake.utils import R
-import sys
-
-edgeR = """
-        # read in exp data
-        rawdata <- read.delim("{INPUT}", check.names=FALSE, stringsAsFactors=FALSE)
-
-        library('edgeR')
-        library('Cairo')
-        library('RColorBrewer')
-        # put the data into a DGEList object
-        y <- DGEList(counts=rawdata[,2:ncol(rawdata)], genes=rawdata[,1])
-
-        # skipped annotation part
-        # filter duplicated entries (None)
-        o <- order(rowSums(y$counts), decreasing=TRUE)
-        y <- y[o,]
-
-        d <- duplicated(y$genes)
-        y <- y[!d,]
-
-        # filter lowly expressed genes
-        keep <- rowSums(cpm(y)>1) >= 3
-        y <- y[keep,]
-
-        # calculate library size
-        # normalization
-        y <- calcNormFactors(y)
-        # setup design matrix
-        # Treatments (conditions to be compared)
-        treatments <- factor({treatments})
-
-        if (is.null({pairs})) {{
-            # no paired
-            design <- model.matrix(~treatments)
-        }} else {{
-            # paired samples
-            pairs <- factor({pairs})
-            data.frame(Sample=colnames(y),pairs,treatments)
-            design <- model.matrix(~pairs + treatments)
-        }}
-
-        # MDS
-        cols <- brewer.pal(8, "Set1")
-        colcode <- cols[as.numeric(treatments)]
-        CairoPNG("{prefix}.MDS.png")
-        plotMDS(y,
-                pch = as.numeric(treatments),
-                col = colcode,
-                labels = colnames(y))
-        dev.off()
-
-
-        rownames(design) <- colnames(y)
-        # DE analysis
-        y <- estimateGLMCommonDisp(y, design, verbose=TRUE)
-        y <- estimateGLMTrendedDisp(y, design)
-        y <- estimateGLMTagwiseDisp(y, design)
-        fit <- glmFit(y, design)
-        lrt <- glmLRT(fit)
-        # top genes
-        de_table=topTags(lrt, n=Inf, sort.by="PValue")
-#        de_table = format(de_table, digit = 3)
-        write.table(de_table, file="{prefix}.diffexpr.txt", sep = '\t', row.names=FALSE,na='')
-        # num of de genes summary
-        de <- decideTestsDGE(lrt)
-        de_stat = summary(de)
-        cat(c("{prefix}", de_stat[1:3], "\n"), file="{prefix}.deSummary.txt", sep = '\t', append=FALSE)
-
-        # plot log Fold Change vs Count per Million
-        CairoPNG("{prefix}.FC-CPM.png")
-        detags <- rownames(y)[as.logical(de)]
-        plotSmear(lrt, de.tags=detags)
-        abline(h=c(-1, 1), col="blue")
-        dev.off()
-        """
+cur_dir = srcdir('.')
 rule edger:
     input: "expression/{exp}_vs_{ctrl}.{feature}.readcounts.txt"
     output: "tmp/edger/{exp}_vs_{ctrl}.{feature, gene|isoform}.diffexpr.txt"
@@ -98,21 +23,15 @@ rule edger:
         mem = "8G",
         prefix = "tmp/edger/{exp}_vs_{ctrl}.{feature}",
         # treatments in form of c("trt_rep1", "trt_rep2", "trt_rep3", "ctrl_rep1", "ctrl_rep2", "ctrl_rep3")
-        treatments = lambda wc: 'c("{}")'.format('", "'.join([wc.exp] * len(config["treatments"][wc.exp]) +
+        treatments = lambda wc: '"{}"'.format('", "'.join([wc.exp] * len(config["treatments"][wc.exp]) +
                                                              [wc.ctrl] * len(config["treatments"][wc.ctrl]))),
         # if paired make paired information in form of c("0", "1", "2", "0", "1", "2")
-        pairs = lambda wc: 'c("{}")'.format('", "'.join(map(str, list(range(len(config["treatments"][wc.exp]))) +
-                                               list(range(len(config["treatments"][wc.ctrl]))) ) ) ) \
-                           if paired["{}:{}".format(wc.exp, wc.ctrl)] else "c()"
+        pairs = lambda wc: '"' + '", "'.join(map(str, list(range(len(config["treatments"][wc.exp]))) +
+                                               list(range(len(config["treatments"][wc.ctrl]))) ) )  + '"' \
+                           if paired["{}:{}".format(wc.exp, wc.ctrl)] else '""'
         # conditions=lambda wc: ','.join(map(str, (map(len, [config["treatments"][wc.exp], config["treatments"][wc.ctrl]]))))
-    run:
-        rscript = edgeR.format(INPUT=input,
-                               prefix=params.prefix,
-                               treatments=params.treatments ,
-                               pairs = params.pairs)
-        with open(params.prefix + "_edger.R", 'w') as rscript_out:
-            rscript_out.write(rscript)
-        shell("Rscript {params.prefix}_edger.R")
+    shell: "{cur_dir}/script_edger.py -t {params.treatments} --prefix {params.prefix} --pairs {params.pairs} {input} \n"
+            "Rscript {params.prefix}_edger.R"
 
 rule mv_edger_result:
     input: "tmp/edger/{exp}_vs_{ctrl}.{feature}.diffexpr.txt"
@@ -220,7 +139,7 @@ rule report_edger:
         # add links to the gene table
         table_df['DE Genes'] = '<a href="#tab-' + (table_df.index + 1).map(str) + '">' + table_df['DE Genes'].map(str) +'</a>'
         #'<a href="#' + table_df["Condition1"] + '_' + table_df["Condition2"] + '">' + table_df['DE Genes'].map(str) + '</a>'
-        summary_html = table_df.to_html(classes="brc", escape=False, index=False)
+        summary_html = table_df.to_html(classes="table table-bordered table-hover", escape=False, index=False)
 
         # write gene table
 

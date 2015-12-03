@@ -66,7 +66,10 @@ def table_to_html(table_fn, width = 980, height = 280):
         data = pd.read_table(fn)
         data.index += 1
         data.columns=["ID"] + list( data.columns[1:])
-        source = ColumnDataSource(data.applymap(lambda x: round(float(x), 2) if str(x).lstrip('-').replace('.','',1).isdigit() else x))
+        if len(data) == 0: # empty table
+            source = ColumnDataSource(data)
+        else:
+            source = ColumnDataSource(data.applymap(lambda x: round(float(x), 2) if str(x).lstrip('-').replace('.','',1).isdigit() else x))
         columns = [ TableColumn(field= a, title= a) for a in data.columns ]
         data_table = DataTable(source=source, columns=columns, width=width, height=height)
         grid.append(data_table)
