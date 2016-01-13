@@ -79,8 +79,8 @@ dev.off()
 """
 
 @begin.start
-def run(treatments=None, prefix=None, pairs="", count_table):
-    rscript = edgeR.format(INPUT=count_table,
+def run(treatments=None, prefix=None, pairs="", *count_table):
+    rscript = edgeR.format(INPUT=' '.join(count_table),
                                prefix=prefix,
                                treatments=treatments ,
                                pairs = pairs)

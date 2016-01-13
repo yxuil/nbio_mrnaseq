@@ -49,7 +49,13 @@ def isPairedReads(sample):
     for r1, r2 in zip(R1s, R2s):
         pos, a, b = dif(r1, r2)
 
-        if len(pos) == 1 and sorted([a[0], b[0]]) == ["1", "2"]:
+        if len(pos) == 1 and \
+            sorted([a[0], b[0]]) == ["1", "2"] and \
+            not r1[pos[0] - 1 ].isdigit() and \
+            not r2[pos[0] - 1 ].isdigit():
+            # only one position is different
+            # the difference is only 1 vs 2
+            # !!! this oly accounts for L001_R1 vs L002_R1 and L001_R2
             pass
         else:
             #("The sample {} has un-matched reads file. It is single end.".format(sample))
@@ -71,7 +77,9 @@ def table_to_html(table_fn, width = 980, height = 280):
         else:
             source = ColumnDataSource(data.applymap(lambda x: round(float(x), 2) if str(x).lstrip('-').replace('.','',1).isdigit() else x))
         columns = [ TableColumn(field= a, title= a) for a in data.columns ]
-        data_table = DataTable(source=source, columns=columns, width=width, height=height)
+        if width == 980: # default
+            width = max(width, 100 * len(columns)) # make sure the column width is wide enough
+        data_table = DataTable(source=source, columns=columns, width=width, height=height, row_headers=False)
         grid.append(data_table)
     script, divs = components(grid, None)
     return(script, divs)

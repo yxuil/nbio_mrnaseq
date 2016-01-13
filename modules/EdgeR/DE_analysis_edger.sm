@@ -7,7 +7,8 @@ output: differential gene expression table
 
 localrules: diffexpr
 
-cur_dir = srcdir('.')
+
+script_edger = srcdir("script_edger.py")
 rule edger:
     input: "expression/{exp}_vs_{ctrl}.{feature}.readcounts.txt"
     output: "tmp/edger/{exp}_vs_{ctrl}.{feature, gene|isoform}.diffexpr.txt"
@@ -23,14 +24,15 @@ rule edger:
         mem = "8G",
         prefix = "tmp/edger/{exp}_vs_{ctrl}.{feature}",
         # treatments in form of c("trt_rep1", "trt_rep2", "trt_rep3", "ctrl_rep1", "ctrl_rep2", "ctrl_rep3")
-        treatments = lambda wc: '"{}"'.format('", "'.join([wc.exp] * len(config["treatments"][wc.exp]) +
+        treatments = lambda wc: '"{}"'.format('","'.join([wc.exp] * len(config["treatments"][wc.exp]) +
                                                              [wc.ctrl] * len(config["treatments"][wc.ctrl]))),
         # if paired make paired information in form of c("0", "1", "2", "0", "1", "2")
         pairs = lambda wc: '"' + '", "'.join(map(str, list(range(len(config["treatments"][wc.exp]))) +
                                                list(range(len(config["treatments"][wc.ctrl]))) ) )  + '"' \
                            if paired["{}:{}".format(wc.exp, wc.ctrl)] else '""'
         # conditions=lambda wc: ','.join(map(str, (map(len, [config["treatments"][wc.exp], config["treatments"][wc.ctrl]]))))
-    shell: "{cur_dir}/script_edger.py -t {params.treatments} --prefix {params.prefix} --pairs {params.pairs} {input} \n"
+    shell: "source activate py2 \n"
+            "{script_edger} -t '{params.treatments}' --prefix {params.prefix} --pairs {params.pairs} {input[0]} \n"
             "Rscript {params.prefix}_edger.R"
 
 rule mv_edger_result:
@@ -141,21 +143,38 @@ rule report_edger:
         #'<a href="#' + table_df["Condition1"] + '_' + table_df["Condition2"] + '">' + table_df['DE Genes'].map(str) + '</a>'
         summary_html = table_df.to_html(classes="table table-bordered table-hover", escape=False, index=False)
 
+        # add clickable link to the DE tables in <tr> tag
+        ocr = re.findall(r"<tr>", summary_html)
+        for i in range(len(ocr)):
+            # this will replace <tr> tag one at a time to add proper 'tab-x' link
+            summary_html = re.sub(r"<tr>", r'''<tr onclick="displayTable('tab-{}')">'''.format(i+1), summary_html, count=1)
+
+
         # write gene table
 
         html_template = Template("""
-        <div class=tabs>
-            {% for e, c, gt_tbl in labeled_gt %}
-            <div id=tab-{{ loop.index }}> <a href="#tab-{{ loop.index }}">{{ e }}_vs_{{ c }}</a>
-                {{ gt_tbl }}
+        <div class="grid">
 
+            <div onchange="displayTable(null);">
+              <select id="tableSelect" class="form-control">
+                <option>Select a table</option>
+                {% for e, c in comp_pair %}
+                <option value="tab-{{ loop.index }}">{{ e }} vs. {{ c }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            {% for e, c, gt_tbl in labeled_gt %}
+            <div id="tab-{{ loop.index }}"  style="display:none"> <h3 href="#tab-{{ loop.index }}">{{ e }}_vs_{{ c }}</h3>
+                {{ gt_tbl }}
+                <hr/>
             </div>
             {% endfor %}
         </div>
-        <div>Only differentially expressed genes are shown. Full gene table see `*.gene.diffexpr.txt` files in `diff_expr` folder.</div>
+        <div>Only differentially expressed genes are shown here. Please see file `differential_expression.xlsx` for the full gene table.</div>
 
-        <link rel="stylesheet" href="http://cdn.pydata.org/bokeh/release/bokeh-0.9.2.min.css" type="text/css" />
-        <script type="text/javascript" src="http://cdn.pydata.org/bokeh/release/bokeh-0.9.2.min.js"></script>
+        <link rel="stylesheet" href="CSS/bokeh-0.9.2.min.css" type="text/css" />
+        <script type="text/javascript" src="JS/bokeh-0.9.2.min.js"></script>
         {{ grid_js }}
         """)
 
@@ -163,7 +182,9 @@ rule report_edger:
         if type(gt_divs) == str:
             # single element list
             gt_divs = [gt_divs]
-        de_html = html_template.render(labeled_gt=zip(expGrp_lst, ctrlGrp_lst, gt_divs), grid_js=grid_js)
+        de_html = html_template.render( comp_pair=zip(expGrp_lst, ctrlGrp_lst),
+                                        labeled_gt=zip(expGrp_lst, ctrlGrp_lst, gt_divs),
+                                        grid_js=grid_js)
 
         with open(output.html, 'w') as f_out:
             #write out summary table

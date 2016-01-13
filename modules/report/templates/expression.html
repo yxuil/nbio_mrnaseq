@@ -26,6 +26,11 @@
 <hr>
     {{ expr_html }}
     <div margin-left="2em">* Gene expression tables are in the folder.</div>
+    <script>
+      $(function() {
+        $( "#tabs" ).tabs();
+      });
+    </script>
 <hr>
 
 <div>
@@ -65,5 +70,7 @@
 
 {% block scripts %}
     <link rel="stylesheet" href="CSS/bokeh-0.9.2.min.css" type="text/css" />
+    <link rel="stylesheet" href="CSS/jquery-ui.css" type="text/css" />
     <script type="text/javascript" src="JS/bokeh-0.9.2.min.js"></script>
+    <script type="text/javascript" src="JS/jquery-ui.js"></script>
 {% endblock %}

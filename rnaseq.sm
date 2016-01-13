@@ -153,7 +153,7 @@ rule one_compare:
 # currently the output is a tar gz file with prefix specified by "deliverable" in config file
 # it can only run after report.html file is created
 
-rule make_deliverable:
+rule deliverable:
     input: "report.html", "expression/expression.xlsx", "diff_expr/differential_expression.xlsx"
     output: "mRNAseq_Analysis.zip"
     log: "tmp/pipeline_log/make_deliverable.log"

@@ -35,6 +35,31 @@ def edger_report(config, output):
     
     # write gene table
     grid_js, gt_divs = table_to_html(file_list)
+
+    # TODO: fix the html
+    html_template = Template("""
+        <div id="tabs" class="grid">
+            <ul>
+            {% for lbl, gt_tbl in labeled_gt %}
+                <li><a href="#tab-{{ loop.index }}">{{ lbl }}</a></li>
+            {% endfor %}
+            </ul>
+            {% for lbl, gt_tbl in labeled_gt %}
+            <div id="tab-{{ loop.index }}" class="tab"> <a href="#tab-{{ loop.index }}"></a>
+                {{ gt_tbl }}
+            </div>
+            {% endfor %}
+        </div>
+
+        <link rel="stylesheet" href="JS/bokeh-0.9.2.min.css" type="text/css" />
+        <script type="text/javascript" src="JS/bokeh-0.9.2.min.js"></script>
+        {{ grid_js }}
+
+
+        """)
+
+    # html_str = html_template.render(labeled_gt=zip(labels, gt_divs), grid_js=grid_js)
+
     with open(output + ".html", 'w') as f_out:
         f_out.write(table_df.to_html(classes="brc", escape=False))
         for comp, gt_div in zip (config["comparisons"], gt_divs):

@@ -202,22 +202,28 @@ rule report_rsem_expression:
         grid_js, gt_divs = table_to_html(list(input))
 
         html_template = Template("""
-
-        <div class=tabs>
-            {% for lbl, gt_tbl in labeled_gt %}
-            <div id=tab-{{ loop.index }}> <a href="#tab-{{ loop.index }}">{{ lbl }}</a>
+        <div id="tabs" class="grid">
+            <ul>
+            {% for lbl in labels %}
+                <li><a href="#tab-{{ loop.index }}">{{ lbl }}</a></li>
+            {% endfor %}
+            </ul>
+            {% for gt_tbl in gt_divs %}
+            <div id="tab-{{ loop.index }}" class="tab" style="overflow-x: scroll;"> <a href="#tab-{{ loop.index }}"></a>
                 {{ gt_tbl }}
             </div>
             {% endfor %}
         </div>
 
-        <link rel="stylesheet" href="http://cdn.pydata.org/bokeh/release/bokeh-0.9.2.min.css" type="text/css" />
-        <script type="text/javascript" src="http://cdn.pydata.org/bokeh/release/bokeh-0.9.2.min.js"></script>
+        <link rel="stylesheet" href="CSS/bokeh-0.9.2.min.css" type="text/css" />
+        <script type="text/javascript" src="JS/bokeh-0.9.2.min.js"></script>
         {{ grid_js }}
+
         """)
         # make the first table checked
         checked =[' checked="checked"'] + ['']*(len(gt_divs)-1)
-        html_str = html_template.render(labeled_gt=zip(labels, gt_divs), grid_js=grid_js)
+        html_str = html_template.render(labels = labels, gt_divs = gt_divs, grid_js=grid_js)
+#        html_str = html_template.render(labeled_gt=zip(labels, gt_divs), grid_js=grid_js)
         with open(str(output.html), 'w') as f_out:
             f_out.write(html_str)
 
