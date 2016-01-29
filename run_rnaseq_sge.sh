@@ -15,7 +15,9 @@ USAGE="Usage: run_rnaseq_sge.sh run_config_file [-c \"qsub_command\"] [snakemake
              $exe  config_file -n -p
                => Dont run pipeline; just print out shell command "
 
-qsub_default="qsub -V -cwd -S /bin/bash -sync y -j y -b y -o {log} -l vf={params.mem} -q all.q " # -m abe -M liu@biotech.wisc.edu"
+# default qsub parameter and email notification
+qsub_default="qsub -V -cwd -S /bin/bash -sync y -j y -b y -o {log} -l vf={params.mem} -q all.q "
+qsub_email="-m abe -M liu@biotech.wisc.edu "
 #DRMAA = " -q all.q -V -cwd -l vf={params.mem} -j y -b y -o {log}"
 {
 CMD=`echo $0 | sed -e 's/^.*\///'`
@@ -41,8 +43,8 @@ fi
 if hash qsub 2>/dev/null; then  # check if qsub available
     config=$1
     shift              # get everything after the config file
-    qsub -V -cwd -S /bin/bash -j y -b y -o pipeline.log -N runRNAseq -m abe -M liu@biotech.wisc.edu \
-       ${progPath}/run_rnaseq.sh $config --cluster-sync \"$qsub_default\" --jn s.\{rulename\}.\{jobid\} -w 120 -j 20 $@
+    # -V -cwd -S /bin/bash -j y -b y -o pipeline.log -N runRNAseq -m abe -M liu@biotech.wisc.edu \
+    ${qsub_default} ${qsub_email} ${progPath}/run_rnaseq.sh $config --cluster-sync \"$qsub_default\" --jn s.\{rulename\}.\{jobid\} -w 120 -j 20 $@
 #    ${progPath}/run_rnaseq.sh $config --drmaa " $DRMAA"  -w 30 -j 20 $@
 else
     # qsub not available

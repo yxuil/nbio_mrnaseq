@@ -29,7 +29,7 @@ rule edger:
         # if paired make paired information in form of c("0", "1", "2", "0", "1", "2")
         pairs = lambda wc: '"' + '", "'.join(map(str, list(range(len(config["treatments"][wc.exp]))) +
                                                list(range(len(config["treatments"][wc.ctrl]))) ) )  + '"' \
-                           if paired["{}:{}".format(wc.exp, wc.ctrl)] else '""'
+                           if matched_pair["{}:{}".format(wc.exp, wc.ctrl)] else '""'
         # conditions=lambda wc: ','.join(map(str, (map(len, [config["treatments"][wc.exp], config["treatments"][wc.ctrl]]))))
     shell: "source activate py2 \n"
             "{script_edger} -t '{params.treatments}' --prefix {params.prefix} --pairs {params.pairs} {input[0]} \n"
