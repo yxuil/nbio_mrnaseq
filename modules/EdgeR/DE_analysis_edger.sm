@@ -27,7 +27,7 @@ rule edger:
         treatments = lambda wc: '"{}"'.format('","'.join([wc.exp] * len(config["treatments"][wc.exp]) +
                                                              [wc.ctrl] * len(config["treatments"][wc.ctrl]))),
         # if paired make paired information in form of c("0", "1", "2", "0", "1", "2")
-        pairs = lambda wc: '"' + '", "'.join(map(str, list(range(len(config["treatments"][wc.exp]))) +
+        pairs = lambda wc: '"' + '","'.join(map(str, list(range(len(config["treatments"][wc.exp]))) +
                                                list(range(len(config["treatments"][wc.ctrl]))) ) )  + '"' \
                            if matched_pair["{}:{}".format(wc.exp, wc.ctrl)] else '""'
         # conditions=lambda wc: ','.join(map(str, (map(len, [config["treatments"][wc.exp], config["treatments"][wc.ctrl]]))))

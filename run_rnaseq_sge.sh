@@ -16,9 +16,12 @@ USAGE="Usage: run_rnaseq_sge.sh run_config_file [-c \"qsub_command\"] [snakemake
                => Dont run pipeline; just print out shell command "
 
 # default qsub parameter and email notification
+# parameters in {} are placeholders, which are replaced by snakemake in the pipeline
 qsub_default="qsub -V -cwd -S /bin/bash -sync y -j y -b y -o {log} -l vf={params.mem} -q all.q "
-qsub_email="-m abe -M liu@biotech.wisc.edu "
-#DRMAA = " -q all.q -V -cwd -l vf={params.mem} -j y -b y -o {log}"
+
+# use qsub_email if you want email notification when the run is finished
+# email="-m abe -M liu@biotech.wisc.edu "
+
 {
 CMD=`echo $0 | sed -e 's/^.*\///'`
 # should scan all args first for --X options
@@ -33,19 +36,11 @@ if [ "$1" = "-h" ]; then
 fi
 }
 
-#while getopts "hDLw:o:p:s:t:j:b:B:" opt
-#do
-#  case $opt in
-#    c) CLUSTER_SUB=$OPTARG;;
-#    q) CLUSTER_QUEUE=$OPTARG;;
-#
-
 if hash qsub 2>/dev/null; then  # check if qsub available
     config=$1
     shift              # get everything after the config file
-    # -V -cwd -S /bin/bash -j y -b y -o pipeline.log -N runRNAseq -m abe -M liu@biotech.wisc.edu \
-    ${qsub_default} ${qsub_email} ${progPath}/run_rnaseq.sh $config --cluster-sync \"$qsub_default\" --jn s.\{rulename\}.\{jobid\} -w 120 -j 20 $@
-#    ${progPath}/run_rnaseq.sh $config --drmaa " $DRMAA"  -w 30 -j 20 $@
+    qsub -V -cwd -S /bin/bash -j y -b y -o pipeline.log -N runRNAseq ${email} ${progPath}/run_rnaseq.sh $config \
+    --cluster-sync \"$qsub_default\" --jn s.\{rulename\}.\{jobid\} -w 120 -j 10 $@
 else
     # qsub not available
     echo "WARNING: qsub cannot be found. Use local machine instead!"

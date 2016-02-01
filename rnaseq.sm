@@ -34,27 +34,30 @@ def remove_spaces(s):
     return ":".join(items)
 config["comparisons"] = list(map(remove_spaces, config["comparisons"]))
 
-# paired list of exp and ctrl treatments
+# matched_pair list of exp and ctrl treatments
 expGrp_lst =  [ str.strip(comp.split(":")[0]) for comp in config["comparisons"]]
 ctrlGrp_lst = [ str.strip(comp.split(":")[1]) for comp in config["comparisons"]]
 
 # samples pairing setup. default as not-paired
-if "paired" not in config:
-    config["paired"] = [False] * len(config["comparisons"])
-elif type(config["paired"]) is str:
-    config["paired"] = [config["paired"]]
-d =len(config['comparisons']) -  len(config['paired']) 
+if "matched_pair" not in config:
+    config["matched_pair"] = [False] * len(config["comparisons"])
+elif type(config["matched_pair"]) is str:
+    config["matched_pair"] = [config["matched_pair"]]
+# if not all comparisons have matched_pair defined
+d =len(config['comparisons']) -  len(config['matched_pair'])
 if d > 0:
-    config['paired'] += [False] * d
-for i, v in enumerate(config['paired']):
-    if (type(v) is str): 
+    # defaults are False
+    config['matched_pair'] += [False] * d
+# Allow case insensetive true/yes to be True
+for i, v in enumerate(config['matched_pair']):
+    if (type(v) is str):
         if (v.lower() in ['yes', 'true']):
-            config['paired'][i]= True
+            config['matched_pair'][i]= True
         else:
-            config['paired'][i]= False 
+            config['matched_pair'][i]= False
 
 
-paired = dict(zip(config['comparisons'], config['paired'])) # dict of boolean values for exp:ctrl pairs. used in the edegr module
+matched_pair = dict(zip(config['comparisons'], config['matched_pair'])) # dict of boolean values for exp:ctrl pairs. used in the edegr module
 #for num, (exp, ctrl) in enumerate(zip(expGrp_lst, ctrlGrp_lst)):
 #        # default paired setting is false
 #        paired["{}:{}".format(exp, ctrl)] = False

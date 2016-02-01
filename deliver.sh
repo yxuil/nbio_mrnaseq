@@ -20,7 +20,7 @@ else
     [ ! -d ${deliver_path}/alignments ] && mkdir -p ${deliver_path}/alignments
 
     # create and move zipped report files
-    ${pipelin_path}/run_runaseq.sh $1 deliverable 
+    ${pipelin_path}/run_runaseq.sh $1 deliverable
     mv ${workdir}/mRNAseq_Analysis.zip ${deliver_path}
 
     # move genome aligned BAM files
