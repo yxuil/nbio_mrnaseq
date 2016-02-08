@@ -12,7 +12,7 @@ def align_report(samples, output):
     sample_summary = pd.DataFrame()
     for sample in samples:
         # alignment stat
-        log = 'tmp/pipeline_log/star_align_{}.final.log'.format(sample)
+        log = 'tmp/shell_log/star_align_{}.final.log'.format(sample)
         aln_stat = pd.Series.from_csv(log, sep="|", index_col=[0]).map(str.strip, na_action='ignore')
         aln_stat = aln_stat.iloc[[4, 7, 8, 16, 22, 23, 27, 28, 29]]
         sample_summary[sample] = aln_stat

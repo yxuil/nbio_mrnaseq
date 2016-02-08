@@ -4,7 +4,7 @@
 SNAKEMAKE     = "/mnt/software/anaconda/envs/py3/bin/snakemake"
 TOOLDIR       = "/mnt/software/"
 CUTADAPT      = TOOLDIR + "cutadapt-dir/cutadapt-1.3/bin/cutadapt"
-SKEWER        = TOOLDIR + "skewer"
+SKEWER        = TOOLDIR + "skewer/skewer"
 PICARD        = TOOLDIR + "picard-dir/picard-tools-1.48/"
 BEDTOOLS      = TOOLDIR + "bedtools-dir/bedtools-2.17.0/bin/"
 NOVO          = TOOLDIR + "novoalign-dir/novocraft-V3.02.07/"

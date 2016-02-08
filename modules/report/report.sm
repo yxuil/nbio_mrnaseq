@@ -4,9 +4,10 @@ curdir = srcdir(".")
 rule versions:
     output: "tmp/software_version.html"
     params: mem = "1G"
-    shell:"""
-        {curdir}/software_version.py {output}
-        """
+    shell:"""echo "
+{curdir}/software_version.py {output}" >> {cmd_log}
+{curdir}/software_version.py {output}
+"""
 
 def report_input(wc):
     required_input = [ "trimmed_fq/trim_stat.html",
@@ -31,11 +32,13 @@ rule report:
     params:
         mem="1G",
         report_dir="report"
-    shell: """
-        {curdir}/report.py {config_fn}
-        cp {curdir}/workflow.png {output.png}
-        cp -r {curdir}/CSS {params.report_dir}
-        cp -r {curdir}/JS {params.report_dir}
-        cp {curdir}/templates/redirect.html {output.html}
-        """
+    shell: """echo "
+{curdir}/report.py {config_fn}" >> {cmd_log}
+
+{curdir}/report.py {config_fn}
+cp {curdir}/workflow.png {output.png}
+cp -r {curdir}/CSS {params.report_dir}
+cp -r {curdir}/JS {params.report_dir}
+cp {curdir}/templates/redirect.html {output.html}
+"""
 

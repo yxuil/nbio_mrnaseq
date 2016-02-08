@@ -1,8 +1,15 @@
 '''
 Please see the example run_config.json file for configuration file format
 '''
+__author__ = "Xiaoyu Liu"
+__email__ = "liux@nbio.info"
+__copyright__ = "Copyright (C) 2016 Xiaoyu Liu"
+__status__ = "development"
+__license__ = "Public Domain"
+__version__ = "0.3b"
 
 import sys, os, shutil, json
+from datetime import datetime
 
 config_fn="run_config.json"
 configfile:
@@ -12,7 +19,7 @@ workdir:
     config["workdir"]
 
 # create path for SGE output, temporary path etc.
-for d in ["pipeline_log", 'shell_log', 'rseqc']:
+for d in ['shell_log', 'rseqc']:
     os.makedirs(os.path.join("tmp", d), exist_ok=True)
 
 ##### CONFIG #####
@@ -23,6 +30,8 @@ SAMPLES = [ s for trt in sorted(config["treatments"].keys()) for s in config["tr
 w_dir =  config["workdir"]
 delivery = config.get("delivery", os.path.join(config["workdir"], "delivery"))
 data_dir = config["data_dir"]
+
+cmd_log = "commands_{}.log".format(datetime.now().strftime("%Y%m%d"))
 
 # when there is only one comparison specified, extra step to make it into a one item list
 if type(config["comparisons"]) is str:
@@ -159,7 +168,7 @@ rule one_compare:
 rule deliverable:
     input: "report.html", "expression/expression.xlsx", "diff_expr/differential_expression.xlsx"
     output: "mRNAseq_Analysis.zip"
-    log: "tmp/pipeline_log/make_deliverable.log"
+    log: "tmp/shell_log/make_deliverable.log"
     params:
         mem="4G",
         directory = "mRNAseq_Analysis"

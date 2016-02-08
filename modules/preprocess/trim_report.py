@@ -17,18 +17,22 @@ def trim_report(samples, output):
     sample_summary = pd.DataFrame()
     for sample in samples:
         # trim stat
-        log = 'tmp/pipeline_log/{}_trim.log'.format(sample)
+        log = 'tmp/shell_log/{}_trim.log'.format(sample)
 
+        pairTrimmed = None
         # detect if it is single end or paired end trimming in the log
         with open(log) as f_in:
             while (1):
                 line = f_in.readline()
+
                 if line.startswith("Input file"):
                     next_line = f_in.readline()
                     if next_line.startswith("Paired file"):
                         pairTrimmed = True
                     else:
                         pairTrimmed = False
+                    break
+                elif line is '': # empty / end of file
                     break
         # process the log
         with open(log) as f_in:

@@ -18,7 +18,7 @@ rule star_index:
         fa = ref_fa,
         gtf= ref_gtf 
     output: STAR_IDX
-    log: "tmp/pipeline_log/star_index.log"
+    log: "tmp/shell_log/star_index.log"
     params:
         mem="34G", 
         log="tmp/shell_log/star_index_Log.out"
@@ -29,9 +29,12 @@ rule star_index:
     # OUTPUT:  {output}
     # PROGRAM: STAR genomeGenerate
     """
-    shell: """
-    {STAR} --runThreadN {threads} --runMode genomeGenerate --genomeDir {STAR_IDX_DIR} --genomeFastaFiles {input.fa} --sjdbGTFfile {input.gtf} --sjdbOverhang {read_length}
-    mv Log.out {params.log}
+    shell: """echo "
+{STAR} --runThreadN {threads} --runMode genomeGenerate --genomeDir {STAR_IDX_DIR} --genomeFastaFiles {input.fa} --sjdbGTFfile {input.gtf} --sjdbOverhang {read_length}
+mv Log.out {params.log}" >> {cmd_log}
+
+{STAR} --runThreadN {threads} --runMode genomeGenerate --genomeDir {STAR_IDX_DIR} --genomeFastaFiles {input.fa} --sjdbGTFfile {input.gtf} --sjdbOverhang {read_length}
+mv Log.out {params.log}
     """
 
 rule star_align_pass1:
@@ -55,11 +58,15 @@ rule star_align_pass1:
     # PROGRAM: STAR
     """
 
-    shell:"""
-        {STAR} --runThreadN {threads} --genomeDir {STAR_IDX_DIR} --readFilesIn {params.reads_lst}  \
-            --readFilesCommand zcat --outFileNamePrefix {params.o_prefix} --outSAMattributes NH HI AS NM MD XS \
-            --outFilterMultimapNmax 50 #$logging
-        """
+    shell:"""echo "
+{STAR} --runThreadN {threads} --genomeDir {STAR_IDX_DIR} --readFilesIn {params.reads_lst}  \
+    --readFilesCommand zcat --outFileNamePrefix {params.o_prefix} --outSAMattributes NH HI AS NM MD XS \
+    --outFilterMultimapNmax 50 " >> {cmd_log}
+
+{STAR} --runThreadN {threads} --genomeDir {STAR_IDX_DIR} --readFilesIn {params.reads_lst}  \
+    --readFilesCommand zcat --outFileNamePrefix {params.o_prefix} --outSAMattributes NH HI AS NM MD XS \
+    --outFilterMultimapNmax 50 #$logging
+"""
 
 star_junc_merge= srcdir("star_junc_merge.py")
 rule merge_star_junction:
@@ -86,7 +93,7 @@ rule star_align_pass2:
         genome_alignment="tmp/star_alignment_pass2/{sample}_Aligned.sortedByCoord.out.bam",
         transcriptome_alignment = "tmp/star_alignment_pass2/{sample}_Aligned.toTranscriptome.out.bam",
         reads_count="tmp/star_alignment_pass2/{sample}_ReadsPerGene.out.tab",
-        log="tmp/pipeline_log/star_align_{sample}.final.log"
+        log="tmp/shell_log/star_align_{sample}.final.log"
     params:
         mem = "32G", # for SGE submission option: -l vf={params.mem}
         o_prefix = "tmp/star_alignment_pass2/{sample}_",
@@ -101,19 +108,21 @@ rule star_align_pass2:
     # PROGRAM: STAR --quantMode TranscriptomeSAM GeneCounts
     """
 
-    shell:"""
-        # if [ -z "$SGE_O_WORKDIR" ]; then
-        #     logging="2>&1 | tee {log}" # shell logging
-        # else
-        #     logging=""  # SGE logging
-        # fi
-        {STAR} --runThreadN {threads} --genomeDir {STAR_IDX_DIR} --sjdbFileChrStartEnd {input.junc_file} \
-            --readFilesIn {params.reads_lst}  \
-            --readFilesCommand zcat --outFileNamePrefix {params.o_prefix} --outSAMattributes NH HI AS NM MD XS \
-            --outSAMunmapped Within --outSAMtype BAM SortedByCoordinate --quantMode TranscriptomeSAM GeneCounts \
-            --outFilterMultimapNmax 50 #$logging
-        mv {params.o_prefix}Log.final.out {output.log}
-        """
+    shell:"""echo "
+{STAR} --runThreadN {threads} --genomeDir {STAR_IDX_DIR} --sjdbFileChrStartEnd {input.junc_file} \
+    --readFilesIn {params.reads_lst}  \
+    --readFilesCommand zcat --outFileNamePrefix {params.o_prefix} --outSAMattributes NH HI AS NM MD XS \
+    --outSAMunmapped Within --outSAMtype BAM SortedByCoordinate --quantMode TranscriptomeSAM GeneCounts \
+    --outFilterMultimapNmax 50 #$logging
+mv {params.o_prefix}Log.final.out {output.log}" >> {cmd_log}
+
+{STAR} --runThreadN {threads} --genomeDir {STAR_IDX_DIR} --sjdbFileChrStartEnd {input.junc_file} \
+    --readFilesIn {params.reads_lst}  \
+    --readFilesCommand zcat --outFileNamePrefix {params.o_prefix} --outSAMattributes NH HI AS NM MD XS \
+    --outSAMunmapped Within --outSAMtype BAM SortedByCoordinate --quantMode TranscriptomeSAM GeneCounts \
+    --outFilterMultimapNmax 50 #$logging
+mv {params.o_prefix}Log.final.out {output.log}
+"""
 
 rule mv_alignment:
     input:  "tmp/star_alignment_pass2/{sample}_Aligned.sortedByCoord.out.bam",
@@ -129,9 +138,14 @@ rule mv_alignment:
     # OUTPUT:  {output}
     # PROGRAM: mv
     """
-    shell:  "mv  {input[0]} {output[0]};"
-            "mv  {input[1]} {output[1]}"
+    shell:  """echo "
+mv  {input[0]} {output[0]}
+mv  {input[1]} {output[1]}" >> {cmd_log}
 
+mv  {input[0]} {output[0]}
+mv  {input[1]} {output[1]}"""
+
+star_count = srcdir("quant_star.py")
 rule star_readcount:
     input: lambda wc: ["tmp/star_alignment_pass2/{s}_ReadsPerGene.out.tab".format(s=sample) for sample in config["treatments"][wc.exp] + config["treatments"][wc.ctrl]]
     output: "expression/{exp}_vs_{ctrl}.gene.readcount.txt"
@@ -144,25 +158,19 @@ rule star_readcount:
     # OUTPUT:  {output}
     # PROGRAM: pandas
     """
-    run:
-        import pandas as pd
-        table_out = pd.DataFrame()
-        for fn in input:
-            sample_name = os.path.basename(fn).replace("_ReadsPerGene.out.tab", "")
-            table_in = pd.read_table(fn, index_col=0, header = None, skiprows=skip)
-
-            table_out[sample_name] = table_in[1]
-        table_out.index.name = "gene"
-        table_out.to_csv(output, sep = '\t')
+    shell: """echo "
+{star_count} {output} {input}" >> {cmd_log}
+{star_count} {output} {input}
+"""
 
 
 star_report = srcdir("align_star_report.py")
 rule alignment_stat:
     input: expand("alignments/{sample}_aligned_genome.bam", sample=SAMPLES),
-           expand("tmp/pipeline_log/star_align_{sample}.final.log", sample=SAMPLES)
+           expand("tmp/shell_log/star_align_{sample}.final.log", sample=SAMPLES)
     output: "alignments/alignment_stat.html"
     params: mem='1G', o_prefix="alignments/alignment_stat"
-    log: "tmp/shell_log/trim_report.log"
+    log: "tmp/shell_log/alignment_report.log"
     message: """\n#####  report STAR alignment stat
     # rule: alignment_stat
     # INPUT:   {input}
@@ -178,9 +186,4 @@ rule alignment_stat:
 # use this rule when only alignments are needed
 rule alignment:
     input: expand("alignments/{sample}_aligned_genome.bam", sample=SAMPLES)
-    message: """\n##### Run the alignment for all samples
-    # rule: alignment
-    # INPUT:   {input}
-    # OUTPUT:  {output}
-    # PROGRAM:
-    """
+    message: "\n##### Run the alignment for all samples"

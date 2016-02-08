@@ -68,7 +68,7 @@ rule report_edger:
                     for feature in config["features"] \
                     for table in ['diffexpr', 'onlyDE']]
     output: html="diff_expr/de_report.html", txt = "diff_expr/de_report.txt", xls = "diff_expr/differential_expression.xlsx"
-    log: "tmp/pipeline_log/report_edger.log"
+    log: "tmp/shell_log/report_edger.log"
     params:
         mem = "8G"
     run:

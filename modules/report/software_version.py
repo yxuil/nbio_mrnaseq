@@ -11,9 +11,11 @@ output = sys.argv[1]
 
 softwares = OrderedDict()
 
-softwares["Pipeline"] = 'r20151102'
-skewer_ver =  subprocess.check_output('echo `/mnt/software/skewer -v`', shell=True)
-softwares["skewer"]=filter(None, re.split("[: ]+", skewer_ver))[2]
+# TODO: need to replace hard coded software with retrieving ones in the toolsinfo
+
+softwares["Pipeline"] = 'r20160208'
+skewer_ver =  subprocess.check_output('echo `/mnt/software/skewer/skewer -v`', shell=True).decode("utf-8")
+softwares["skewer"]=re.split("[: ]+", skewer_ver)[2] #filter(None, re.split("[: ]+", skewer_ver))[2]
 star_ver = subprocess.check_output("/mnt/software/STAR-dir/STAR-2.4.2a/STAR --version", stderr=subprocess.STDOUT, shell=True)
 softwares["STAR"] = star_ver.split("_")[1]
 rsem_ver = subprocess.check_output("/mnt/software/rsem-dir/rsem-1.2.22/rsem-calculate-expression -version", shell=True)

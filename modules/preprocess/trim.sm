@@ -7,7 +7,7 @@ rule trim_single:
     params:
         mem = "4G",
         prefix = "trimmed_fq/{sample}",
-        log="tmp/pipeline_log/{sample}_trim.log"
+        log="tmp/shell_log/{sample}_trim.log"
     threads: 8
     message: """\n##### Trim sequencing adaptor from single end reads of sample: {wildcards.sample}
     # rule:    trim_single
@@ -17,24 +17,30 @@ rule trim_single:
     """
     run:
         for fname in input:
-            shell("{SKEWER} -x AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC "
-                  "-y AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT -q 20 "
-                  "-k 15 -l 25 -t {threads} -o {params.prefix} {fname}")
-            shell("cat {params.prefix}.fastq >> {params.prefix}.fq")
-            shell("cat {params.prefix}.log >> {params.log}")
-            shell("rm  {params.prefix}.fastq {params.prefix}.log")
-        shell("gzip  {params.prefix}.fq")
+            shell("""echo "
+{SKEWER} -x AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC -y AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT -q 20 -k 15 -l 25 -t {threads} -o {params.prefix} {fname}
+cat {params.prefix}-trimmed.fastq >> {params.prefix}.fq
+cat {params.prefix}-trimmed.log >> {params.log}
+rm  {params.prefix}-trimmed.fastq {params.prefix}-trimmed.log
+gzip  {params.prefix}.fq" >> {cmd_log}
+""")
+            shell("""
+{SKEWER} -x AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC -y AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT -q 20 -k 15 -l 25 -t {threads} -o {params.prefix} {fname}
+cat {params.prefix}-trimmed.fastq >> {params.prefix}.fq
+cat {params.prefix}-trimmed.log >> {params.log}
+rm  {params.prefix}-trimmed.fastq {params.prefix}-trimmed.log
+gzip  {params.prefix}.fq""")
 
 rule trim_paired:
     input:
         r1 = lambda wc: [ os.path.join(data_dir, f) for f in config['samples'][wc.sample][0::2] ], # odd elements
         r2 = lambda wc: [ os.path.join(data_dir, f) for f in config['samples'][wc.sample][1::2] ] # even elements
-    output: "trimmed_fq/{sample}_R1.fq.gz", "trimmed_fq/{sample}_R2.fq.gz", "tmp/pipeline_log/{sample}_trim.log"
+    output: "trimmed_fq/{sample}_R1.fq.gz", "trimmed_fq/{sample}_R2.fq.gz", "tmp/shell_log/{sample}_trim.log"
     log: "tmp/shell_log/{sample}_trim.log"
     params:
         mem = "4G",
         prefix = "trimmed_fq/{sample}",
-        log="tmp/pipeline_log/{sample}_trim.log"
+        log="tmp/shell_log/{sample}_trim.log"
     threads: 8
     message: """\n##### Trim sequencing adaptor from paired end reads of sample: {wildcards.sample}
     # rule:    trim_paired
@@ -44,18 +50,25 @@ rule trim_paired:
     """
     run:
         for r1_fname, r2_fname in zip(input.r1, input.r2):
-            shell( "{SKEWER} -x AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC "
-                   "-y AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT -q 20 "
-                   "-k 15 -l 25 -t {threads} -o {params.prefix} {r1_fname} {r2_fname}\n"
-                   "cat {params.prefix}-pair1.fastq >> {params.prefix}_R1.fq\n"
-                  "cat {params.prefix}-pair2.fastq >> {params.prefix}_R2.fq\n"
-                  "cat {params.prefix}.log >> {params.log}\n"
-                  "rm  {params.prefix}-pair?.fastq {params.prefix}.log")
-        shell("gzip  {params.prefix}_R1.fq; gzip  {params.prefix}_R2.fq")
+            shell("""echo "
+{SKEWER} -x AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC -y AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT -q 20 -k 15 -l 25 -t {threads} -o {params.prefix} {r1_fname} {r2_fname}
+cat {params.prefix}-trimmed-pair1.fastq >> {params.prefix}_R1.fq
+cat {params.prefix}-trimmed-pair2.fastq >> {params.prefix}_R2.fq
+cat {params.prefix}-trimmed.log >> {params.log}
+rm  {params.prefix}-trimmed-pair?.fastq {params.prefix}-trimmed.log
+gzip  {params.prefix}_R1.fq; gzip  {params.prefix}_R2.fq" >> {cmd_log}
+""")
+            shell("""
+{SKEWER} -x AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC -y AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT -q 20 -k 15 -l 25 -t {threads} -o {params.prefix} {r1_fname} {r2_fname}
+cat {params.prefix}-trimmed-pair1.fastq >> {params.prefix}_R1.fq
+cat {params.prefix}-trimmed-pair2.fastq >> {params.prefix}_R2.fq
+cat {params.prefix}.log >> {params.log}
+rm  {params.prefix}-trimmed-pair?.fastq {params.prefix}-trimmed.log
+gzip  {params.prefix}_R1.fq; gzip  {params.prefix}_R2.fq""")
 
 trim_report = srcdir("trim_report.py")
 rule trim_stat:
-    input: expand("tmp/pipeline_log/{sample}_trim.log", sample=SAMPLES)
+    input: expand("tmp/shell_log/{sample}_trim.log", sample=SAMPLES)
     output: "trimmed_fq/trim_stat.html"
     params: mem='1G', o_prefix="trimmed_fq/trim_stat"
     log: "tmp/shell_log/trim_report.log"
@@ -66,5 +79,6 @@ rule trim_stat:
     # PROGRAM: trim_report.py
     """
     shell: """
+        echo "{trim_report} {config_fn} {params.o_prefix}" >> {cmd_log}
         {trim_report} {config_fn} {params.o_prefix}
         """

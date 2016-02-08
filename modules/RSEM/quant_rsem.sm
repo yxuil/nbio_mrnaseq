@@ -87,8 +87,9 @@ rule rsem_index:
     # OUTPUT:  {output}
     # PROGRAM: rsem-prepare-reference
     """
-    shell:
-        "{RSEM}/rsem-prepare-reference --gtf {input.gtf} --bowtie --bowtie-path {BOWTIE} {input.fa} {params.ref};"
+    shell:"""echo "
+{RSEM}/rsem-prepare-reference --gtf {input.gtf} --bowtie --bowtie-path {BOWTIE} {input.fa} {params.ref}" >> {cmd_log}
+{RSEM}/rsem-prepare-reference --gtf {input.gtf} --bowtie --bowtie-path {BOWTIE} {input.fa} {params.ref}"""
 
 ruleorder: rsem_bam > rsem_fastq
 rule rsem_bam:
@@ -109,8 +110,10 @@ rule rsem_bam:
     # # OUTPUT:  {output}
     # # PROGRAM: rsem-calculate-expression
     # """
-    shell: """
-            {RSEM}/rsem-calculate-expression {params.pair_option} --bam {input.bam} --keep-intermediate-files --no-bam-output -p {threads} {params.ref} {params.prefix}
+    shell: """echo "
+{RSEM}/rsem-calculate-expression {params.pair_option} --bam {input.bam} --keep-intermediate-files --no-bam-output -p {threads} {params.ref} {params.prefix}" >> {cmd_log}
+
+{RSEM}/rsem-calculate-expression {params.pair_option} --bam {input.bam} --keep-intermediate-files --no-bam-output -p {threads} {params.ref} {params.prefix}
             """
 
 rule rsem_exp_matrix:
@@ -127,9 +130,12 @@ rule rsem_exp_matrix:
     # OUTPUT:  {output}
     # PROGRAM: rsem-generate-data-matrix
     """
-    shell: """
-             {RSEM}/rsem-generate-data-matrix {input} > {output}
-             sed -i '1s/.*/{params.header_str}/' {output}
+    shell: """ echo "
+ {RSEM}/rsem-generate-data-matrix {input} > {output}
+ sed -i '1s/.*/{params.header_str}/' {output}"  >> {cmd_log}
+
+ {RSEM}/rsem-generate-data-matrix {input} > {output}
+ sed -i '1s/.*/{params.header_str}/' {output}
              """
 
 rule mv_expression:
@@ -256,11 +262,15 @@ rule rsem_fastq:
             read1_lst = ",".join(reads)
             read2_lst = ""
             pair_option = ""
-        shell("set -x;"\
-              "{RSEM}/rsem-calculate-expression -p {threads} --output-genome-bam --bowtie-path {BOWTIE} "\
-              "{pair_option} {read1_lst} {read2_lst} {params.ref} rsem_estimate/{wildcards.sample};")
+        shell("""echo "
+{RSEM}/rsem-calculate-expression -p {threads} --output-genome-bam --bowtie-path {BOWTIE} {pair_option} {read1_lst} {read2_lst} {params.ref} rsem_estimate/{wildcards.sample}" >> {cmd_log}
+
+{RSEM}/rsem-calculate-expression -p {threads} --output-genome-bam --bowtie-path {BOWTIE} {pair_option} {read1_lst} {read2_lst} {params.ref} rsem_estimate/{wildcards.sample}
+"""
+)
 
 
 
 rule expression:
     input: "expression/expression.xlsx"
+    message: "# run pipeline to rule: expression"
