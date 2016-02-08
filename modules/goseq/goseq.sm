@@ -1,3 +1,10 @@
+__author__ = "Xiaoyu Liu"
+__email__ = "liux@nbio.info"
+__copyright__ = "Copyright (C) 2016 Xiaoyu Liu"
+__status__ = "development"
+__license__ = "Public Domain"
+__version__ = "0.1"
+
 cur_dir = srcdir('.')
 PA_TABLES = ['KEGG_pathway', 'GO_Biological_Process', 'GO_Molecular_Function','GO_Cellular_Component']
 

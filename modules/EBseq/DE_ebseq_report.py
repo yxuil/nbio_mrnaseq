@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+__author__ = "Xiaoyu Liu"
+__email__ = "liux@nbio.info"
+__copyright__ = "Copyright (C) 2016 Xiaoyu Liu"
+__status__ = "development"
+__license__ = "Public Domain"
+__version__ = "0.2b"
 
 from ..utilities import table_to_grid, table_to_html
 

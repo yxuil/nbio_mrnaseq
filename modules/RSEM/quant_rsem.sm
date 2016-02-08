@@ -7,6 +7,14 @@ input: alignments/sample_aligned_transcriptome.bam    <- sample is enumerated th
 output: expression/{exp}_vs_{ctrl}.{feature, gene|isoform}.readcounts.txt
 '''
 
+__author__ = "Xiaoyu Liu"
+__email__ = "liux@nbio.info"
+__copyright__ = "Copyright (C) 2016 Xiaoyu Liu"
+__status__ = "development"
+__license__ = "Public Domain"
+__version__ = "0.2b"
+
+
 RSEM_IDX_FILES = ["genome.{i}.ebwt".format(i=i) for i in range(1,5)] + ["genome.rev.{i}.ebwt".format(i=i) for i in [1,2]]
 RSEM_IDX = [os.path.join(ref_base, "RSEMIndex", fn) for fn in RSEM_IDX_FILES]
 RSEM_IDX_DIR = os.path.join(ref_base, "RSEMIndex")

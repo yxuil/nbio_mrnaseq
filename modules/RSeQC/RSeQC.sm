@@ -6,6 +6,12 @@ The whole module creates a section of HTML code for viewing QC plot / table
 input takes individuale genome-aligned BAM files and their index
 outputs a HTML table with thumbnail of graphs and links to full size graph
 '''
+__author__ = "Xiaoyu Liu"
+__email__ = "liux@nbio.info"
+__copyright__ = "Copyright (C) 2016 Xiaoyu Liu"
+__status__ = "development"
+__license__ = "Public Domain"
+__version__ = "0.2b"
 
 #### RseQC
 
