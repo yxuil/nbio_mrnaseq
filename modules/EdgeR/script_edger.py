@@ -83,6 +83,12 @@ detags <- rownames(y)[as.logical(de)]
 plotSmear(lrt, de.tags=detags)
 abline(h=c(-1, 1), col="blue")
 dev.off()
+
+# plot boxplots of counts and cpm
+CairoPNG("{prefix}.Boxplot.png", width = 960, height = 480)
+boxplot(log2(y$counts + 1), las=2, col=colcode, main="Counts")
+boxplot(log2(cpm(y) + 1), las=2, col=colcode, main = "CPM")
+dev.off()
 """
 
 @begin.start

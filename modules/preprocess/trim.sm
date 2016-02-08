@@ -28,15 +28,18 @@ rule trim_single:
 {SKEWER} -x AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC -y AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT -q 20 -k 15 -l 25 -t {threads} -o {params.prefix} {fname}
 cat {params.prefix}-trimmed.fastq >> {params.prefix}.fq
 cat {params.prefix}-trimmed.log >> {params.log}
-rm  {params.prefix}-trimmed.fastq {params.prefix}-trimmed.log
-gzip  {params.prefix}.fq" >> {cmd_log}
+rm  {params.prefix}-trimmed.fastq {params.prefix}-trimmed.log" >> {cmd_log}
 """)
             shell("""
 {SKEWER} -x AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC -y AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT -q 20 -k 15 -l 25 -t {threads} -o {params.prefix} {fname}
 cat {params.prefix}-trimmed.fastq >> {params.prefix}.fq
 cat {params.prefix}-trimmed.log >> {params.log}
 rm  {params.prefix}-trimmed.fastq {params.prefix}-trimmed.log
-gzip  {params.prefix}.fq""")
+""")
+        shell("""echo "
+gzip  {params.prefix}.fq " >> {cmd_log}
+gzip  {params.prefix}.fq
+""")
 
 rule trim_paired:
     input:
