@@ -6,7 +6,7 @@ __email__ = "liux@nbio.info"
 __copyright__ = "Copyright (C) 2016 Xiaoyu Liu"
 __status__ = "development"
 __license__ = "Public Domain"
-__version__ = "0.3b"
+__version__ = "0.2b"
 
 import sys, os, shutil, json
 from datetime import datetime
