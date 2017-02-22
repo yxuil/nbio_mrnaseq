@@ -83,6 +83,7 @@ relative path to it. snakemake provides
 
 
 ### Folder organization
+```
 .
 ├── rnaseq.sm   <= main pipeline file
 ├── run_rnaseq_sge.sh       <- bash wrapper submit jobs to SGE
@@ -163,3 +164,4 @@ relative path to it. snakemake provides
 │   │   ├── RSeQC_report.py
 │   │   └── RSeQC.sm
 
+```
